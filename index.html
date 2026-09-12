@@ -1,0 +1,2911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prince Builders — From Blueprint To Built</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --charcoal:#1f3d37;
+    --charcoal-2:#28483f;
+    --charcoal-3:#325850;
+    --concrete:#fbf4e8;
+    --concrete-2:#f3e8d4;
+    --steel:#8a6a3f;
+    --steel-light:#b08f5f;
+    --brick:#1f6f5c;
+    --brick-light:#3f9484;
+    --gold:#c98f3a;
+    --gold-soft:#e0b876;
+    --white:#fefbf3;
+    --ink:#2c2418;
+    --ink-soft:#71624a;
+    --line:rgba(44,36,24,0.13);
+    --line-light:rgba(254,251,243,0.16);
+    --persp:1200px;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
+  }
+
+  body{
+    font-family:'IBM Plex Sans', sans-serif;
+    background:var(--concrete);
+    color:var(--ink);
+    overflow-x:hidden;
+    line-height:1.5;
+  }
+
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  h1,h2,h3,.display{
+    font-family:'Big Shoulders Display', sans-serif;
+    font-weight:900;
+    text-transform:uppercase;
+    letter-spacing:0.01em;
+    line-height:0.94;
+  }
+
+  a{color:inherit; text-decoration:none;}
+  ul{list-style:none;}
+  img,svg{display:block; max-width:100%;}
+  section{position:relative;}
+
+  .wrap{
+    max-width:1240px;
+    margin:0 auto;
+    padding:0 32px;
+  }
+  @media (max-width:640px){ .wrap{padding:0 20px;} }
+
+  /* focus visibility */
+  a:focus-visible, button:focus-visible{
+    outline:2px solid var(--brick);
+    outline-offset:3px;
+  }
+
+  /* ============ BLUEPRINT GRID BACKDROP ============ */
+  .blueprint-bg{
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(rgba(44,36,24,0.16) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(44,36,24,0.16) 1px, transparent 1px);
+    background-size:44px 44px;
+    pointer-events:none;
+  }
+  .blueprint-bg.dark{
+    background-image:
+      linear-gradient(var(--line-light) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line-light) 1px, transparent 1px);
+  }
+
+  /* ============ MOVING LIGHT ORBS ============ */
+  .light-field{ position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:1; }
+  .glow-orb{
+    position:absolute; border-radius:50%; mix-blend-mode:screen; filter:blur(2px);
+    opacity:0.65;
+  }
+  .light-field.on-light .glow-orb{ mix-blend-mode:soft-light; opacity:0.6; filter:blur(10px); }
+  .light-field.on-light .scan-line{ background:linear-gradient(to bottom, transparent, var(--steel), transparent); box-shadow:0 0 20px 2px rgba(176,143,95,0.35); opacity:0.35; }
+  .light-field.on-light .crosshair::before,.light-field.on-light .crosshair::after{ background:var(--gold); box-shadow:0 0 5px rgba(201,143,58,0.5); }
+  .glow-orb.gold{
+    width:520px; height:520px; background:radial-gradient(circle, rgba(201,143,58,0.55) 0%, rgba(201,143,58,0) 68%);
+    top:-180px; left:-120px; animation:drift1 22s ease-in-out infinite;
+  }
+  .glow-orb.brick{
+    width:420px; height:420px; background:radial-gradient(circle, rgba(63,148,132,0.4) 0%, rgba(63,148,132,0) 68%);
+    bottom:-160px; right:-80px; animation:drift2 26s ease-in-out infinite;
+  }
+  .glow-orb.steel{
+    width:360px; height:360px; background:radial-gradient(circle, rgba(176,143,95,0.32) 0%, rgba(176,143,95,0) 70%);
+    top:30%; right:12%; animation:drift3 19s ease-in-out infinite;
+  }
+  @keyframes drift1{
+    0%,100%{ transform:translate(0,0) scale(1); }
+    50%{ transform:translate(120px,90px) scale(1.15); }
+  }
+  @keyframes drift2{
+    0%,100%{ transform:translate(0,0) scale(1); }
+    50%{ transform:translate(-90px,-70px) scale(1.1); }
+  }
+  @keyframes drift3{
+    0%,100%{ transform:translate(0,0) scale(1); }
+    33%{ transform:translate(-60px,50px) scale(0.9); }
+    66%{ transform:translate(50px,-40px) scale(1.08); }
+  }
+
+  /* scanning laser sweep for blueprint sections */
+  .scan-line{
+    position:absolute; top:0; bottom:0; width:2px;
+    background:linear-gradient(to bottom, transparent, var(--steel-light), transparent);
+    box-shadow:0 0 24px 3px rgba(176,143,95,0.6);
+    opacity:0.55; animation:sweep 9s linear infinite;
+  }
+  @keyframes sweep{
+    0%{ left:-2%; }
+    100%{ left:102%; }
+  }
+
+  /* 3D tilt */
+  .tilt-parent{ perspective:var(--persp); }
+  .tilt{
+    transform-style:preserve-3d;
+    transition:transform .25s cubic-bezier(.2,.7,.3,1), box-shadow .25s ease;
+    will-change:transform;
+  }
+
+  /* shimmer sweep for buttons */
+  .btn-primary, .nav-cta{ position:relative; overflow:hidden; }
+  .btn-primary::after, .nav-cta::after{
+    content:""; position:absolute; top:0; left:-60%; width:40%; height:100%;
+    background:linear-gradient(115deg, transparent, rgba(255,255,255,0.35), transparent);
+    transform:skewX(-20deg);
+    animation:shimmer 3.6s ease-in-out infinite;
+  }
+  @keyframes shimmer{
+    0%{ left:-60%; }
+    35%{ left:130%; }
+    100%{ left:130%; }
+  }
+
+  .crosshair{
+    position:absolute; width:18px; height:18px; pointer-events:none;
+    animation:pulseDot 3s ease-in-out infinite;
+  }
+  .crosshair::before,.crosshair::after{
+    content:"";
+    position:absolute; background:var(--gold);
+    box-shadow:0 0 6px rgba(201,143,58,0.7);
+  }
+  .crosshair::before{ top:50%; left:0; width:100%; height:1px; transform:translateY(-50%);}
+  .crosshair::after{ left:50%; top:0; height:100%; width:1px; transform:translateX(-50%);}
+  @keyframes pulseDot{
+    0%,100%{ opacity:0.4; }
+    50%{ opacity:1; }
+  }
+
+  .tag-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--brick);
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .tag-label::before{
+    content:"";
+    width:22px; height:1px; background:var(--brick);
+  }
+  .dark-ctx .tag-label{ color:var(--gold); }
+  .dark-ctx .tag-label::before{ background:var(--gold); }
+
+  /* ============ NAV ============ */
+  header{
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    background:rgba(31,61,55,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line-light);
+  }
+  .nav-inner{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 32px;
+    max-width:1240px; margin:0 auto;
+  }
+  .logo{
+    font-family:'Big Shoulders Display', sans-serif;
+    font-weight:900; font-size:24px; letter-spacing:0.02em;
+    color:var(--white);
+    text-transform:uppercase;
+    display:flex; align-items:center; gap:10px;
+  }
+  .logo .dot{ color:var(--brick); }
+  nav ul{ display:flex; gap:32px; }
+  @media (max-width:900px){ nav ul{ display:none; } }
+  nav a{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--concrete-2);
+    transition:color .2s;
+    position:relative;
+  }
+  nav a:hover{ color:var(--gold); }
+  .nav-cta{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px; letter-spacing:0.06em; text-transform:uppercase;
+    background:var(--brick); color:var(--white);
+    padding:10px 18px;
+    border:1px solid var(--brick);
+    transition:background .2s, color .2s;
+    white-space:nowrap;
+  }
+  .nav-cta:hover{ background:transparent; color:var(--brick-light); border-color:var(--brick-light); }
+
+  /* ============ HERO ============ */
+  .hero{
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse 900px 560px at 8% -8%, rgba(201,143,58,0.14), transparent 60%),
+      radial-gradient(ellipse 780px 560px at 102% 105%, rgba(31,111,92,0.11), transparent 60%),
+      linear-gradient(160deg, #fefaf0 0%, #faf2e0 55%, #f5ead2 100%);
+    color:var(--ink);
+    display:flex; align-items:center;
+    padding:140px 0 80px;
+    overflow:hidden;
+  }
+  .hero-grid{
+    display:grid; grid-template-columns:1.1fr 0.9fr; gap:40px; align-items:center;
+    position:relative; z-index:2;
+  }
+  @media (max-width:960px){ .hero-grid{ grid-template-columns:1fr; } }
+
+  .hero h1{
+    font-size:clamp(48px, 7.4vw, 96px);
+    color:var(--ink);
+    margin:18px 0 22px;
+  }
+  .hero h1 em{ font-style:normal; color:var(--brick); }
+  .hero p.lead{
+    font-size:17px; color:var(--ink-soft); max-width:480px; margin-bottom:34px;
+  }
+  .hero-actions{ display:flex; gap:16px; flex-wrap:wrap; margin-bottom:44px;}
+  .btn-primary{
+    background:linear-gradient(135deg, var(--brick-light), var(--brick) 60%);
+    color:var(--white);
+    font-family:'IBM Plex Mono', monospace; font-size:13px; letter-spacing:0.05em; text-transform:uppercase;
+    padding:16px 28px; border:1px solid var(--brick);
+    transition:transform .2s, box-shadow .2s;
+    display:inline-flex; align-items:center; gap:10px;
+    box-shadow:0 10px 26px -12px rgba(31,111,92,0.6);
+  }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 16px 34px -12px rgba(31,111,92,0.8); }
+  .btn-secondary{
+    background:transparent; color:var(--ink);
+    font-family:'IBM Plex Mono', monospace; font-size:13px; letter-spacing:0.05em; text-transform:uppercase;
+    padding:16px 28px; border:1px solid rgba(44,36,24,0.3);
+    transition:border-color .2s, color .2s, background .2s;
+  }
+  .btn-secondary:hover{ border-color:var(--brick); color:var(--brick); background:rgba(31,111,92,0.05); }
+
+  .hero-stats{ display:flex; gap:36px; flex-wrap:wrap; }
+  .hero-stats div{ border-left:2px solid var(--brick); padding-left:12px; }
+  .hero-stats strong{ display:block; font-family:'Big Shoulders Display'; font-size:34px; color:var(--ink); }
+  .hero-stats span{ font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-soft); }
+
+  /* blueprint house animation */
+  .house-stage{ position:relative; width:100%; aspect-ratio:1/1; max-width:520px; margin:0 auto; }
+  .house-stage::before{
+    content:""; position:absolute; inset:6%;
+    background:radial-gradient(circle, rgba(201,143,58,0.16) 0%, rgba(201,143,58,0) 68%);
+    filter:blur(4px); z-index:-1;
+  }
+  .house-stage svg{ width:100%; height:100%; }
+  .blueline{
+    fill:none; stroke:var(--steel); stroke-width:2;
+    stroke-dasharray:2000; stroke-dashoffset:2000;
+    animation:draw 3.2s ease forwards;
+  }
+  .fillshape{
+    opacity:0; transform-origin:center;
+    animation:fillin 1.2s ease forwards;
+    animation-delay:2.6s;
+  }
+  .fillshape.roof{ fill:var(--brick); }
+  .fillshape.wall{ fill:#e4d6b0; }
+  .fillshape.door{ fill:var(--ink); }
+  .fillshape.window{ fill:var(--gold); animation:fillin 1.2s ease 2.6s forwards, windowGlow 2.6s ease-in-out 3.8s infinite; }
+  @keyframes draw{ to{ stroke-dashoffset:0; } }
+  @keyframes fillin{ from{opacity:0; transform:scale(0.94);} to{opacity:1; transform:scale(1);} }
+  @keyframes windowGlow{
+    0%,100%{ filter:drop-shadow(0 0 2px rgba(201,143,58,0.5)); }
+    50%{ filter:drop-shadow(0 0 12px rgba(201,143,58,0.95)); }
+  }
+  .stage-label{
+    position:absolute; font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:0.1em;
+    color:var(--steel); text-transform:uppercase; opacity:0; animation:fillin 0.8s ease forwards;
+  }
+  .stage-label.l1{ top:6%; left:2%; animation-delay:0.2s; }
+  .stage-label.l2{ bottom:8%; right:2%; animation-delay:3.4s; }
+
+  /* ============ SECTION HEADERS ============ */
+  .section-head{ max-width:640px; margin-bottom:56px; }
+  .section-head h2{ font-size:clamp(34px,4.6vw,56px); margin-top:14px; }
+  .section-head p{ color:var(--ink-soft); font-size:16px; margin-top:14px; max-width:560px; }
+  .dark-ctx .section-head p{ color:var(--concrete-2); }
+
+  section.pad{ padding:110px 0; }
+  @media (max-width:640px){ section.pad{ padding:76px 0; } }
+
+  /* ============ REVEAL ============ */
+  .reveal{ opacity:0; transform:translateY(28px); transition:opacity .7s ease, transform .7s ease; }
+  .reveal.in{ opacity:1; transform:translateY(0); }
+  .reveal-stagger > *{ opacity:0; transform:translateY(24px); transition:opacity .6s ease, transform .6s ease; }
+  .reveal-stagger.in > *{ opacity:1; transform:translateY(0); }
+  .reveal-stagger.in > *:nth-child(1){ transition-delay:0s; }
+  .reveal-stagger.in > *:nth-child(2){ transition-delay:0.1s; }
+  .reveal-stagger.in > *:nth-child(3){ transition-delay:0.2s; }
+  .reveal-stagger.in > *:nth-child(4){ transition-delay:0.3s; }
+
+  /* ============ THREE PILLARS (interfaces) ============ */
+  .pillars{ display:grid; grid-template-columns:repeat(3,1fr); gap:2px; background:var(--ink); border:1px solid var(--ink);}
+  @media (max-width:900px){ .pillars{ grid-template-columns:1fr; } }
+  .pillar{
+    background:var(--white);
+    padding:40px 32px 44px;
+    position:relative;
+    transition:background .35s ease;
+    overflow:hidden;
+  }
+  .pillar:hover{ background:var(--charcoal); box-shadow:0 30px 60px -25px rgba(44,36,24,0.4), 0 0 0 1px rgba(201,143,58,0.25); z-index:3; }
+  .pillar:hover .pillar-copy, .pillar:hover .pillar-num{ color:var(--concrete-2); }
+  .pillar:hover h3{ color:var(--white); }
+  .pillar:hover .pillar-list li{ color:var(--concrete-2); }
+  .pillar:hover .pillar-icon svg *{ stroke:var(--gold); }
+  .pillar-num{ font-family:'IBM Plex Mono'; font-size:12px; color:var(--ink-soft); letter-spacing:0.1em; transition:color .35s; }
+  .pillar-icon{ width:56px; height:56px; margin:22px 0; }
+  .pillar-icon svg{ width:100%; height:100%; }
+  .pillar-icon svg *{ stroke:var(--brick); transition:stroke .35s, filter .35s; fill:none; stroke-width:1.6; }
+  .pillar:hover .pillar-icon svg *{ filter:drop-shadow(0 0 6px rgba(201,143,58,0.7)); }
+  .pillar h3{ font-size:26px; margin-bottom:12px; transition:color .35s; }
+  .pillar-copy{ font-size:14.5px; color:var(--ink-soft); margin-bottom:18px; transition:color .35s; }
+  .pillar-list li{
+    font-family:'IBM Plex Mono'; font-size:12px; color:var(--ink-soft);
+    padding:7px 0; border-top:1px solid var(--line); transition:color .35s;
+  }
+  .pillar-list li::before{ content:"— "; color:var(--brick); }
+
+  /* ============ PROCESS ============ */
+  .process-dark{ background:var(--charcoal); color:var(--white); }
+
+  /* ============ ASSEMBLY ANIMATION ============ */
+  .assembly-section{ background:var(--white); }
+  .assembly-stage{ max-width:900px; margin:20px auto 0; }
+  .assembly-svg{ width:100%; height:auto; overflow:visible; }
+  .a-path{ fill:none; stroke:var(--line); stroke-width:1.5; stroke-dasharray:4 6; }
+  .a-node circle{ fill:var(--concrete); stroke:var(--brick); stroke-width:1.5; }
+  .a-glyph{ fill:none; stroke:var(--ink); stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+  .a-glyph-fill{ fill:var(--ink); opacity:0.9; }
+  .a-dot{ filter:drop-shadow(0 0 4px rgba(0,0,0,0.15)); }
+  .a-dot.gold{ fill:var(--gold); }
+  .a-dot.brick{ fill:var(--brick); }
+  .a-dot.steel{ fill:var(--steel); }
+  .a-house-wall{ fill:#e4d6b0; stroke:var(--ink); stroke-width:1.5; }
+  .a-house-roof{ fill:var(--brick); }
+  .a-house-door{ fill:var(--ink); }
+  .a-house{ animation:houseBreathe 3s ease-in-out infinite; transform-origin:450px 330px; }
+  @keyframes houseBreathe{
+    0%,100%{ filter:drop-shadow(0 0 0px rgba(201,143,58,0)); }
+    50%{ filter:drop-shadow(0 0 10px rgba(201,143,58,0.55)); }
+  }
+  .a-label{
+    font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:0.08em; text-transform:uppercase;
+    fill:var(--ink-soft); text-anchor:middle;
+  }
+  .a-label-house{ fill:var(--brick); font-weight:600; font-size:12px; }
+
+  /* ============ ARCH MOTIF DIVIDER (Indian touch) ============ */
+  .jali-divider{
+    height:22px; width:100%;
+    background-image: radial-gradient(circle at 12px -7px, transparent 13px, var(--gold) 13.5px, var(--gold) 14.5px, transparent 15px);
+    background-size:26px 26px;
+    background-repeat:repeat-x;
+    background-position:center top;
+    opacity:0.55;
+  }
+
+
+  .process-steps{ display:grid; grid-template-columns:repeat(6,1fr); gap:0; margin-top:20px; }
+  @media (max-width:960px){ .process-steps{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:520px){ .process-steps{ grid-template-columns:1fr; } }
+  .pstep{
+    border-top:2px solid var(--line-light);
+    padding:22px 18px 0 0;
+    position:relative;
+  }
+  .pstep .pnum{ font-family:'Big Shoulders Display'; font-size:42px; color:var(--brick-light); line-height:1;}
+  .pstep h4{ font-family:'IBM Plex Mono'; font-size:12.5px; text-transform:uppercase; letter-spacing:0.06em; margin:10px 0 8px; color:var(--white); }
+  .pstep p{ font-size:13px; color:var(--concrete-2); line-height:1.5; }
+
+  /* ============ MATERIALS ============ */
+  .mat-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:44px; }
+  .mat-tab{
+    font-family:'IBM Plex Mono'; font-size:12.5px; letter-spacing:0.05em; text-transform:uppercase;
+    padding:12px 20px; border:1px solid var(--ink); background:transparent; color:var(--ink);
+    cursor:pointer; transition:background .2s,color .2s;
+  }
+  .mat-tab.active, .mat-tab:hover{ background:var(--ink); color:var(--white); box-shadow:0 8px 20px -10px rgba(44,36,24,0.4); }
+
+  .mat-panel{ display:none; }
+  .mat-panel.active{ display:block; }
+
+  .mat-intro{
+    display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;
+    margin-bottom:28px; padding-bottom:18px; border-bottom:1px solid var(--line);
+  }
+  .mat-intro h3{ font-size:30px; }
+  .mat-intro .source{ font-family:'IBM Plex Mono'; font-size:12px; color:var(--brick); text-transform:uppercase; letter-spacing:0.05em; }
+
+  .mat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
+  @media (max-width:960px){ .mat-grid{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:560px){ .mat-grid{ grid-template-columns:1fr; } }
+
+  .mat-card{
+    background:var(--white); border:1px solid var(--line); padding:24px 20px;
+    transition:transform .25s ease, box-shadow .25s ease, border-color .25s;
+    position:relative;
+  }
+  .mat-card:hover{ box-shadow:0 26px 44px -20px rgba(44,36,24,0.45), 0 0 0 1px rgba(31,111,92,0.3); border-color:var(--brick); z-index:3; }
+  .mat-card .swatch{ position:relative; overflow:hidden; }
+  .mat-card .swatch::after{
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.35) 50%, transparent 60%);
+    transform:translateX(-120%); transition:transform .6s ease;
+  }
+  .mat-card:hover .swatch::after{ transform:translateX(120%); }
+  .mat-card .swatch{ width:100%; height:64px; margin-bottom:16px; border:1px solid var(--line); }
+  .mat-card h4{ font-family:'Big Shoulders Display'; font-size:20px; text-transform:uppercase; margin-bottom:4px; }
+  .mat-card .grade{ font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--steel); text-transform:uppercase; letter-spacing:0.06em; display:block; margin-bottom:12px; }
+  .mat-card ul li{
+    font-size:12.5px; color:var(--ink-soft); padding:5px 0 5px 14px; position:relative; line-height:1.4;
+  }
+  .mat-card ul li::before{ content:"+"; position:absolute; left:0; color:var(--brick); font-weight:700; }
+
+  /* swatches */
+  .sw-jindal{ background:linear-gradient(135deg,#7a8a94,#3d5a73); }
+  .sw-jsw{ background:linear-gradient(135deg,#8a94a0,#4a6478); }
+  .sw-tata{ background:linear-gradient(135deg,#647d8f,#2f4757); }
+  .sw-sail{ background:linear-gradient(135deg,#9aa5ab,#5a707d); }
+  .sw-kamdhenu{ background:linear-gradient(135deg,#b7a98c,#8a7c5f); }
+  .sw-metro{ background:linear-gradient(135deg,#a8a196,#7d7568); }
+  .sw-shyam{ background:linear-gradient(135deg,#b0a894,#867d63); }
+
+  .sw-katni{ background:linear-gradient(135deg,#e6d9b8,#c9ab6f); }
+  .sw-granite{ background:linear-gradient(135deg,#3a3733,#1c1b19); }
+  .sw-wonder{ background:linear-gradient(135deg,#f2ede2,#d8cfba); }
+  .sw-italian{ background:linear-gradient(135deg,#f4f1ea,#c8c2b4); }
+
+  .sw-40mm{ background:linear-gradient(135deg,#7d7a72,#4c4a44); }
+  .sw-20mm{ background:linear-gradient(135deg,#918d84,#5c5a52); }
+  .sw-60mm{ background:linear-gradient(135deg,#68655e,#38362f); }
+
+  .sw-atella{ background:linear-gradient(135deg,#d8c9a3,#b39d6e); }
+  .sw-tosham-s{ background:linear-gradient(135deg,#cbb98d,#a48a55); }
+  .sw-dadri-s{ background:linear-gradient(135deg,#e0d3ac,#bfa877); }
+
+  /* ============ BUDGET TIERS ============ */
+  .tier-grid{ display:grid; grid-template-columns:1fr 1fr; gap:2px; background:var(--ink); border:1px solid var(--ink); }
+  @media (max-width:800px){ .tier-grid{ grid-template-columns:1fr; } }
+  .tier{ background:var(--white); padding:44px 36px; }
+  .tier.premium{
+    background:radial-gradient(140% 140% at 100% 0%, rgba(201,143,58,0.16), transparent 55%), var(--charcoal);
+    color:var(--white); position:relative;
+  }
+  .tier .tier-tag{ font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--brick); }
+  .tier.premium .tier-tag{ color:var(--gold); }
+  .tier h3{ font-size:34px; margin:14px 0 18px; }
+  .tier ul{ margin-top:18px; }
+  .tier ul li{
+    font-size:14px; padding:10px 0; border-top:1px solid var(--line);
+    display:flex; justify-content:space-between; gap:12px; color:var(--ink-soft);
+  }
+  .tier.premium ul li{ border-top:1px solid var(--line-light); color:var(--concrete-2); }
+  .tier ul li span.check{ font-family:'IBM Plex Mono'; font-size:11px; color:var(--brick); }
+  .tier.premium ul li span.check{ color:var(--gold); }
+
+  /* ============ TEAM ============ */
+  .team-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
+  @media (max-width:900px){ .team-grid{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:520px){ .team-grid{ grid-template-columns:1fr; } }
+  .team-card{
+    border:1px solid var(--line); padding:26px 20px; background:var(--white);
+    transition:border-color .25s;
+  }
+  .team-card:hover{ border-color:var(--brick); box-shadow:0 24px 40px -22px rgba(44,36,24,0.4); z-index:3; }
+  .team-card:hover .team-icon svg *{ stroke:var(--brick); }
+  .team-icon{ width:44px; height:44px; margin-bottom:18px; }
+  .team-icon svg{ width:100%; height:100%; }
+  .team-icon svg *{ stroke:var(--steel); fill:none; stroke-width:1.6; }
+  .team-card h4{ font-family:'Big Shoulders Display'; font-size:20px; text-transform:uppercase; margin-bottom:6px; }
+  .team-card p{ font-size:13px; color:var(--ink-soft); }
+
+  /* ============ CONTACT / FOOTER ============ */
+  .contact{ background:var(--charcoal); color:var(--white); padding:110px 0 60px; }
+  .contact-grid{ display:grid; grid-template-columns:1.2fr 1fr; gap:60px; }
+  @media (max-width:900px){ .contact-grid{ grid-template-columns:1fr; gap:40px; } }
+  .contact h2{ font-size:clamp(38px,6vw,72px); }
+  .contact p.lead{ color:var(--concrete-2); max-width:460px; margin-top:16px; font-size:16px; }
+  .contact-actions{ display:flex; gap:16px; margin-top:34px; flex-wrap:wrap; }
+  .contact-info{ border-left:2px solid var(--brick); padding-left:24px; }
+  .contact-info .row{ padding:14px 0; border-top:1px solid var(--line-light); }
+  .contact-info .row:first-child{ border-top:none; }
+  .contact-info .label{ font-family:'IBM Plex Mono'; font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--gold); display:block; margin-bottom:4px;}
+  .contact-info .val{ font-size:16px; }
+
+  footer{ border-top:1px solid var(--line-light); margin-top:70px; padding-top:24px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+  footer .mono{ font-size:11px; color:var(--concrete-2); letter-spacing:0.05em; }
+
+  /* ================= SCREENSAVER OVERLAY ================= */
+  .ss-overlay{
+    position:fixed; inset:0; z-index:2000;
+    background:
+      radial-gradient(ellipse 900px 640px at 15% 10%, rgba(201,143,58,0.16), transparent 60%),
+      radial-gradient(ellipse 800px 640px at 90% 90%, rgba(63,148,132,0.18), transparent 60%),
+      linear-gradient(160deg, #0f2019 0%, #14261f 45%, #101d18 100%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .7s ease;
+    overflow:hidden;
+  }
+  .ss-overlay.show{ opacity:1; pointer-events:auto; }
+  .ss-overlay .blueprint-bg{ opacity:0.4; }
+
+  .ss-copy{ position:relative; z-index:4; text-align:center; color:#fff; margin-bottom:26px; padding:0 20px; }
+  .ss-copy .tag-label{ justify-content:center; margin-bottom:12px; font-size:12px; }
+  .ss-copy h2{ font-size:clamp(30px,5.6vw,58px); color:#fff; min-height:1.1em; text-shadow:0 4px 30px rgba(0,0,0,0.35); }
+  .ss-copy p{ color:var(--concrete-2); font-size:15px; margin-top:10px; max-width:480px; margin-left:auto; margin-right:auto; }
+
+  .ss-frame{
+    position:relative; z-index:4;
+    width:min(920px,94vw); height:min(440px,56vh);
+    border-radius:18px;
+    background:
+      radial-gradient(ellipse 500px 300px at 50% 30%, rgba(224,184,118,0.08), transparent 70%),
+      linear-gradient(180deg, rgba(254,251,243,0.05), rgba(254,251,243,0.015));
+    border:1px solid rgba(224,184,118,0.28);
+    box-shadow:0 40px 90px -30px rgba(0,0,0,0.65), 0 0 0 1px rgba(0,0,0,0.2) inset, 0 0 60px -10px rgba(201,143,58,0.15);
+    overflow:hidden;
+  }
+  .ss-frame::before{
+    content:"REC ●"; position:absolute; top:16px; left:20px; z-index:6;
+    font-family:'IBM Plex Mono'; font-size:10.5px; letter-spacing:0.1em; color:var(--gold-soft);
+    opacity:0.75;
+  }
+  .ss-frame::after{
+    content:""; position:absolute; inset:0; z-index:5; pointer-events:none;
+    background:linear-gradient(180deg, rgba(0,0,0,0.18), transparent 18%, transparent 82%, rgba(0,0,0,0.28));
+  }
+  .ss-stage{ position:absolute; inset:0; }
+  .ss-scene{ position:absolute; inset:0; opacity:0; transition:opacity .6s ease; }
+  .ss-scene.active{ opacity:1; }
+  .ss-scene svg{ width:100%; height:100%; overflow:visible; }
+
+  .ss-rail{ position:relative; z-index:4; display:flex; gap:22px; margin-top:28px; flex-wrap:wrap; justify-content:center; }
+  .ss-rail .r-item{ display:flex; align-items:center; gap:8px; font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:0.08em; color:#8f9a91; text-transform:uppercase; transition:color .3s; }
+  .ss-rail .r-item .dot{ width:7px; height:7px; border-radius:50%; background:#8f9a91; transition:all .3s; }
+  .ss-rail .r-item.active{ color:#fff; }
+  .ss-rail .r-item.active .dot{ background:var(--gold); box-shadow:0 0 10px 3px var(--gold); }
+
+  .ss-hint{ position:absolute; bottom:26px; z-index:4; font-family:'IBM Plex Mono'; font-size:10.5px; letter-spacing:0.08em; color:#8f9a91; text-transform:uppercase; }
+
+  /* scene-specific motion */
+  @keyframes ringPulse{
+    0%{ transform:scale(0.6); opacity:0.9; }
+    100%{ transform:scale(2.4); opacity:0; }
+  }
+  .ring-wave{ animation:ringPulse 1.6s ease-out infinite; transform-origin:center; }
+  @keyframes phoneShake{
+    0%,100%{ transform:rotate(0deg); }
+    20%{ transform:rotate(-6deg); }
+    40%{ transform:rotate(6deg); }
+    60%{ transform:rotate(-4deg); }
+    80%{ transform:rotate(4deg); }
+  }
+  .phone-shake{ animation:phoneShake 0.7s ease-in-out infinite; transform-origin:400px 260px; }
+
+  @keyframes driveIn{
+    0%{ transform:translateX(-260px); }
+    60%{ transform:translateX(0px); }
+    100%{ transform:translateX(0px); }
+  }
+  .van-drive{ animation:driveIn 1.8s cubic-bezier(.2,.8,.3,1) forwards; }
+
+  @keyframes craneSwing{
+    0%,100%{ transform:rotate(-3deg); }
+    50%{ transform:rotate(3deg); }
+  }
+  .crane-swing{ animation:craneSwing 2.4s ease-in-out infinite; transform-origin:200px 100px; }
+
+  @keyframes sparkleFloat{
+    0%,100%{ opacity:0.25; transform:translateY(0) scale(0.9); }
+    50%{ opacity:1; transform:translateY(-8px) scale(1.15); }
+  }
+  .sparkle{ animation:sparkleFloat 2.1s ease-in-out infinite; }
+
+  @keyframes dustPuff{
+    0%{ opacity:0.5; transform:scale(0.7) translateX(0); }
+    100%{ opacity:0; transform:scale(1.6) translateX(-24px); }
+  }
+  .dust{ animation:dustPuff 1.3s ease-out infinite; }
+
+  @keyframes headlightPulse{
+    0%,100%{ opacity:0.55; } 50%{ opacity:1; }
+  }
+  .headlight{ animation:headlightPulse 1.4s ease-in-out infinite; }
+
+  @keyframes glowBreathe{
+    0%,100%{ filter:drop-shadow(0 0 4px rgba(201,143,58,0.3)); }
+    50%{ filter:drop-shadow(0 0 24px rgba(201,143,58,0.85)); }
+  }
+  .glow-breathe{ animation:glowBreathe 2.4s ease-in-out infinite; }
+
+  /* ============ MODE GATING ============ */
+  body[data-mode="marketplace"] .full-only{ display:none; }
+  body[data-mode="full"] .marketplace-only{ display:none; }
+
+  /* ============ PATH CHOOSER ============ */
+  .path-chooser{ background:var(--white); }
+  .path-grid{ display:grid; grid-template-columns:1fr 1fr; gap:2px; background:var(--ink); border:1px solid var(--ink); }
+  @media (max-width:800px){ .path-grid{ grid-template-columns:1fr; } }
+  .path-card{ background:var(--white); padding:44px 36px; cursor:pointer; transition:background .3s; position:relative; }
+  .path-card:hover{ background:var(--concrete-2); }
+  .path-card.featured{ background:var(--charcoal); color:#fff; }
+  .path-card.featured:hover{ background:var(--charcoal-2); }
+  .path-tag{ font-size:11px; letter-spacing:0.12em; color:var(--brick); text-transform:uppercase; }
+  .path-card.featured .path-tag{ color:var(--gold); }
+  .path-card h3{ font-size:32px; margin:14px 0 12px; }
+  .path-card p{ font-size:14.5px; color:var(--ink-soft); max-width:420px; }
+  .path-card.featured p{ color:var(--concrete-2); }
+  .path-cta{ display:inline-block; margin-top:22px; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; color:var(--brick); }
+  .path-card.featured .path-cta{ color:var(--gold-soft); }
+
+  /* ============ RETAILER MARKETPLACE ============ */
+  .retailer-label{ font-family:'IBM Plex Mono'; font-size:11.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:16px; }
+  .retailer-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+  @media (max-width:960px){ .retailer-grid{ grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:640px){ .retailer-grid{ grid-template-columns:1fr;} }
+  .retailer-card{ background:var(--white); border:1px solid var(--line); border-radius:10px; padding:22px 20px; position:relative; transition:box-shadow .25s, border-color .25s; }
+  .retailer-card:hover{ box-shadow:0 24px 40px -22px rgba(44,36,24,0.4); border-color:var(--brick); z-index:3; }
+  .retailer-card.sponsored{ border-color:var(--gold); box-shadow:0 0 0 1px var(--gold); background:linear-gradient(180deg, rgba(201,143,58,0.08), transparent 45%), var(--white); }
+  .sponsor-badge{ position:absolute; top:14px; right:14px; background:var(--gold); color:var(--white); font-size:9.5px; letter-spacing:0.08em; text-transform:uppercase; padding:4px 9px; border-radius:20px; }
+  .retailer-card h4{ font-family:'Big Shoulders Display'; font-size:21px; text-transform:uppercase; margin:6px 0 4px; padding-right:64px; }
+  .retailer-loc{ font-size:11px; color:var(--ink-soft); margin-bottom:12px; }
+  .retailer-tags{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+  .retailer-tags span{ font-family:'IBM Plex Mono'; font-size:10px; text-transform:uppercase; letter-spacing:0.04em; border:1px solid var(--line); padding:4px 8px; border-radius:20px; color:var(--ink-soft); }
+  .retailer-rates{ list-style:none; }
+  .retailer-rates li{ display:flex; justify-content:space-between; font-size:12.5px; padding:6px 0; border-top:1px solid var(--line); }
+  .retailer-rates li:first-child{ border-top:none; }
+  .retailer-rates li span:last-child{ font-family:'IBM Plex Mono'; color:var(--brick); font-weight:600; }
+
+  /* mobile nav toggle */
+  .burger{ display:none; background:none; border:none; color:var(--white); font-size:26px; cursor:pointer; }
+  @media (max-width:900px){ .burger{ display:block; } }
+  .mobile-menu{
+    display:none; position:fixed; inset:0 0 0 auto; width:78%; max-width:320px; height:100vh;
+    background:var(--charcoal-2); z-index:200; padding:100px 32px 32px;
+    border-left:1px solid var(--line-light);
+  }
+  .mobile-menu.open{ display:block; }
+  .mobile-menu ul li{ padding:14px 0; border-top:1px solid var(--line-light); }
+  .mobile-menu a{ font-family:'IBM Plex Mono'; font-size:14px; text-transform:uppercase; letter-spacing:0.05em; color:var(--white); }
+  .mobile-close{ position:absolute; top:26px; right:28px; background:none; border:none; color:var(--white); font-size:24px; cursor:pointer; }
+
+  /* ============ CALCULATOR MODAL SHELL ============ */
+  .calc-modal-overlay{
+    position:fixed; inset:0; z-index:1000; overflow-y:auto;
+    display:none;
+  }
+  .calc-modal-overlay.open{ display:block; }
+  body.calc-lock{ overflow:hidden; }
+  #calcApp{ min-height:100vh; }
+  #calcApp .topbar{ display:flex; align-items:center; gap:14px; }
+  #calcApp .calc-close{
+    margin-left:auto; background:none; border:1px solid rgba(255,255,255,0.25); color:#fff;
+    width:38px; height:38px; border-radius:50%; font-size:16px; line-height:1;
+    display:flex; align-items:center; justify-content:center; transition:border-color .2s, background .2s;
+  }
+  #calcApp .calc-close:hover{ background:rgba(255,255,255,0.1); border-color:var(--brick-light); }
+
+  /* ===================== CALCULATOR (scoped) ===================== */
+
+#calcApp{
+  --bg:#fbf4e8; --panel:#fffdf8; --panel-2:#faf3e5;
+  --ink:#2c2418; --muted:#71624a; --border:#ecdfc4;
+  --charcoal:#1f3d37; --charcoal-2:#28483f;
+  --brick:#1f6f5c; --brick-light:#3f9484;
+  --gold:#c98f3a; --gold-soft:#e0b876;
+  --steel:#8a6a3f; --steel-light:#b08f5f;
+  --success:#4a8459; --success-bg:#eaf3ec;
+  --white:#fffdf8;
+font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--ink);}
+#calcApp h1, #calcApp h2, #calcApp h3, #calcApp .display{font-family:'Big Shoulders Display',sans-serif;font-weight:900;text-transform:uppercase;line-height:0.96;}
+#calcApp button{font-family:inherit;cursor:pointer;}
+#calcApp input, #calcApp select{font-family:inherit;}
+#calcApp ::-webkit-scrollbar{height:8px;width:8px;}
+#calcApp ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+/* ===== TOPBAR ===== */
+.topbar{
+  position:sticky; top:0; z-index:50;
+  background:var(--charcoal); color:#fff;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 24px; border-bottom:1px solid rgba(255,255,255,0.08);
+}
+.brand{display:flex;align-items:center;gap:10px;font-family:'Big Shoulders Display';font-weight:900;font-size:20px;letter-spacing:0.02em;text-transform:uppercase;}
+.brand .dot{color:var(--brick-light);}
+.mode-switch{display:flex;background:rgba(255,255,255,0.08);border-radius:999px;padding:3px;gap:2px;}
+.mode-switch button{
+  border:none;background:transparent;color:#cfc9bd;
+  padding:9px 20px;border-radius:999px;font-size:12.5px;letter-spacing:0.06em;text-transform:uppercase;
+  font-family:'IBM Plex Mono';transition:background .2s,color .2s;
+}
+.mode-switch button.active{background:var(--brick);color:#fff;}
+
+.view{display:none;}
+.view.active{display:block;}
+
+/* ===== TOAST ===== */
+#toast{
+  position:fixed; bottom:24px; right:24px; z-index:200;
+  background:var(--charcoal); color:#fff; padding:14px 20px; border-radius:8px;
+  font-family:'IBM Plex Mono'; font-size:12.5px; letter-spacing:0.02em;
+  box-shadow:0 14px 30px -10px rgba(44,36,24,0.3);
+  transform:translateY(120%); opacity:0; transition:transform .35s ease, opacity .35s ease;
+  border-left:3px solid var(--success);
+  max-width:320px;
+}
+#toast.show{transform:translateY(0);opacity:1;}
+
+/* =========================================================
+   BUYER INTERFACE
+   ========================================================= */
+.buyer-shell{max-width:1180px;margin:0 auto;padding:28px 24px 100px;}
+.buyer-head{margin-bottom:26px;}
+.buyer-head .tag{font-family:'IBM Plex Mono';font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--brick);display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.buyer-head .tag::before{content:"";width:22px;height:1px;background:var(--brick);}
+.buyer-head h1{font-size:clamp(28px,4vw,42px);}
+
+/* progress */
+.progress-rail{display:flex;gap:4px;margin:22px 0 32px;overflow-x:auto;padding-bottom:4px;}
+.progress-step{
+  flex:1; min-width:86px; text-align:center; cursor:pointer; padding-bottom:10px;
+  border-bottom:3px solid var(--border); transition:border-color .2s;
+}
+.progress-step .num{font-family:'IBM Plex Mono';font-size:11px;color:var(--muted);}
+.progress-step .lbl{font-size:11.5px;font-weight:600;color:var(--muted);margin-top:2px;white-space:nowrap;}
+.progress-step.done{border-color:var(--success);}
+.progress-step.done .num,.progress-step.done .lbl{color:var(--success);}
+.progress-step.current{border-color:var(--brick);}
+.progress-step.current .num,.progress-step.current .lbl{color:var(--brick);}
+.progress-step.locked{cursor:not-allowed;opacity:0.5;}
+
+.buyer-body{display:grid;grid-template-columns:1fr 320px;gap:28px;align-items:start;}
+@media (max-width:900px){ .buyer-body{grid-template-columns:1fr;} }
+
+.step-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:32px;min-height:420px;}
+.step-card h2{font-size:28px;margin-bottom:8px;}
+.step-card .hint{color:var(--muted);font-size:14px;margin-bottom:26px;max-width:560px;}
+
+.choice-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+@media (max-width:560px){ .choice-grid{grid-template-columns:1fr;} }
+
+.choice-card{
+  border:2px solid var(--border);border-radius:12px;padding:20px;
+  cursor:pointer;transition:border-color .2s,transform .2s,box-shadow .2s;background:var(--panel-2);
+}
+.choice-card:hover{transform:translateY(-3px);box-shadow:0 12px 24px -16px rgba(44,36,24,0.2);}
+.choice-card.selected{border-color:var(--brick);background:#fff5ef;box-shadow:0 0 0 1px var(--brick);}
+.choice-card .cc-title{font-family:'Big Shoulders Display';font-size:20px;text-transform:uppercase;}
+.choice-card .cc-sub{font-family:'IBM Plex Mono';font-size:11px;color:var(--muted);margin:4px 0 10px;}
+.choice-card .cc-rate{font-family:'IBM Plex Mono';font-size:15px;color:var(--brick);font-weight:600;}
+.choice-card ul{margin-top:10px;list-style:none;}
+.choice-card ul li{font-size:12px;color:var(--muted);padding:3px 0 3px 14px;position:relative;}
+.choice-card ul li::before{content:"+";position:absolute;left:0;color:var(--brick);font-weight:700;}
+
+.mat-swatch{width:100%;height:44px;border-radius:6px;margin-bottom:10px;border:1px solid var(--border);}
+
+.tier-toggle{display:flex;gap:8px;margin-bottom:20px;}
+.tier-toggle button{
+  padding:10px 18px;border:1px solid var(--ink);background:transparent;border-radius:999px;
+  font-family:'IBM Plex Mono';font-size:12px;text-transform:uppercase;letter-spacing:0.04em;
+  transition:background .2s,color .2s;
+}
+.tier-toggle button.active{background:var(--ink);color:#fff;}
+
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px;}
+@media (max-width:560px){ .field-row{grid-template-columns:1fr;} }
+.field label{display:block;font-family:'IBM Plex Mono';font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.field input[type=number],.field input[type=text]{
+  width:100%;padding:13px 14px;border:1px solid var(--border);border-radius:8px;font-size:15px;background:var(--panel-2);
+}
+.field input:focus{outline:2px solid var(--brick);outline-offset:1px;}
+
+.budget-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media (max-width:560px){ .budget-cards{grid-template-columns:1fr;} }
+
+.step-actions{display:flex;justify-content:space-between;margin-top:30px;gap:12px;}
+.btn{padding:14px 24px;border-radius:8px;font-family:'IBM Plex Mono';font-size:12.5px;text-transform:uppercase;letter-spacing:0.05em;border:1px solid var(--ink);background:transparent;color:var(--ink);transition:all .2s;}
+.btn.primary{background:var(--brick);border-color:var(--brick);color:#fff;}
+.btn.primary:hover{background:var(--brick-light);}
+.btn:disabled{opacity:0.35;cursor:not-allowed;}
+.btn.ghost{border-color:var(--border);color:var(--muted);}
+.btn.ghost:hover{border-color:var(--ink);color:var(--ink);}
+
+/* sidebar estimate */
+.estimate-card{
+  background:var(--charcoal);color:#fff;border-radius:14px;padding:26px;position:sticky;top:84px;
+}
+.estimate-card .tag{font-family:'IBM Plex Mono';font-size:10.5px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold-soft);margin-bottom:6px;display:block;}
+.estimate-card h3{font-size:15px;margin-bottom:18px;color:#e8e3d6;}
+.est-row{display:flex;justify-content:space-between;font-size:12.5px;padding:9px 0;border-top:1px solid rgba(255,255,255,0.1);color:#cfc9bd;}
+.est-row:first-of-type{border-top:none;}
+.est-row.total{border-top:1px solid rgba(255,255,255,0.25);margin-top:8px;padding-top:14px;font-size:15px;color:#fff;font-weight:600;}
+.est-row .v{font-family:'IBM Plex Mono';}
+.est-empty{font-size:12.5px;color:#9a9486;line-height:1.6;}
+
+/* project gallery */
+.gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:30px;}
+@media (max-width:800px){ .gallery-grid{grid-template-columns:1fr 1fr;} }
+@media (max-width:520px){ .gallery-grid{grid-template-columns:1fr;} }
+.proj-card{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--panel-2);}
+.proj-banner{height:90px;}
+.proj-body{padding:14px;}
+.proj-body .pclass{font-family:'IBM Plex Mono';font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--brick);}
+.proj-body h4{font-family:'Big Shoulders Display';font-size:18px;text-transform:uppercase;margin:4px 0 4px;}
+.proj-body .ploc{font-size:12px;color:var(--muted);}
+.proj-body .ptag{font-size:12.5px;color:var(--ink);margin-top:8px;}
+
+.consult-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+@media (max-width:700px){ .consult-grid{grid-template-columns:1fr;} }
+
+/* summary */
+.summary-table{width:100%;border-collapse:collapse;margin-bottom:24px;}
+.summary-table th{text-align:left;font-family:'IBM Plex Mono';font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);padding:8px 6px;border-bottom:1px solid var(--border);}
+.summary-table td{padding:12px 6px;border-bottom:1px solid var(--border);font-size:13.5px;}
+.summary-table td.amt{font-family:'IBM Plex Mono';text-align:right;}
+.summary-total{display:flex;justify-content:space-between;align-items:baseline;background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:22px 24px;margin-bottom:22px;}
+.summary-total .lbl{font-family:'IBM Plex Mono';font-size:12px;text-transform:uppercase;color:var(--muted);}
+.summary-total .val{font-family:'Big Shoulders Display';font-size:36px;color:var(--brick);}
+.ai-box{background:var(--panel-2);border:1px dashed var(--steel);border-radius:10px;padding:20px;margin-top:10px;}
+.ai-box h4{font-family:'IBM Plex Mono';font-size:12px;text-transform:uppercase;letter-spacing:0.06em;color:var(--steel);margin-bottom:10px;}
+.ai-box p{font-size:13.5px;line-height:1.7;color:var(--ink);white-space:pre-wrap;}
+.ai-loading{font-family:'IBM Plex Mono';font-size:12.5px;color:var(--muted);}
+
+/* =========================================================
+   DEVELOPER INTERFACE
+   ========================================================= */
+.dev-shell{max-width:1180px;margin:0 auto;padding:28px 24px 100px;}
+.dev-login{max-width:380px;margin:80px auto;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:34px;text-align:center;}
+.dev-login h2{font-size:24px;margin-bottom:10px;}
+.dev-login p{color:var(--muted);font-size:13px;margin-bottom:20px;}
+.dev-login input{width:100%;padding:13px;border:1px solid var(--border);border-radius:8px;text-align:center;font-size:18px;letter-spacing:0.3em;margin-bottom:14px;}
+.dev-note{font-size:11px;color:var(--muted);margin-top:16px;line-height:1.5;}
+
+.dev-tabs{display:flex;gap:8px;margin-bottom:26px;border-bottom:1px solid var(--border);}
+.dev-tab{padding:12px 4px;margin-right:22px;font-family:'IBM Plex Mono';font-size:12.5px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;}
+.dev-tab.active{color:var(--brick);border-bottom-color:var(--brick);}
+
+.dev-panel{display:none;}
+.dev-panel.active{display:block;}
+
+.dev-section{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;}
+.dev-section h3{font-size:20px;margin-bottom:4px;}
+.dev-section .sub{font-size:12.5px;color:var(--muted);margin-bottom:18px;}
+
+.rate-table{width:100%;border-collapse:collapse;}
+.rate-table th{text-align:left;font-family:'IBM Plex Mono';font-size:10.5px;text-transform:uppercase;color:var(--muted);padding:8px 6px;border-bottom:1px solid var(--border);}
+.rate-table td{padding:8px 6px;border-bottom:1px solid var(--border);font-size:13.5px;vertical-align:middle;}
+.rate-table input[type=number]{width:110px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:'IBM Plex Mono';font-size:13px;}
+.rate-table input[type=text]{padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;width:160px;}
+.del-btn{background:none;border:none;color:#a8583d;font-size:16px;cursor:pointer;}
+.add-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center;}
+.add-row input{padding:9px 10px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;}
+.add-row button{padding:9px 16px;border-radius:6px;border:1px solid var(--steel);color:var(--steel);background:none;font-family:'IBM Plex Mono';font-size:11.5px;text-transform:uppercase;}
+.add-row button:hover{background:var(--steel);color:#fff;}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+@media (max-width:700px){ .two-col{grid-template-columns:1fr;} }
+.two-col .field{margin-bottom:14px;}
+.two-col label{display:block;font-family:'IBM Plex Mono';font-size:11px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.two-col input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;}
+
+.save-bar{position:sticky;bottom:0;background:var(--charcoal);border-radius:12px;padding:16px 22px;display:flex;justify-content:space-between;align-items:center;color:#fff;margin-top:10px;}
+.save-bar .msg{font-size:12px;color:#cfc9bd;font-family:'IBM Plex Mono';}
+.save-bar button{background:var(--brick);border:none;color:#fff;padding:12px 26px;border-radius:8px;font-family:'IBM Plex Mono';font-size:12.5px;text-transform:uppercase;letter-spacing:0.05em;}
+
+.proj-admin-card{display:flex;justify-content:space-between;align-items:center;padding:14px;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;}
+.proj-admin-card .info h4{font-family:'Big Shoulders Display';font-size:17px;text-transform:uppercase;}
+.proj-admin-card .info .meta{font-family:'IBM Plex Mono';font-size:11px;color:var(--muted);}
+
+.loading-screen{display:flex;align-items:center;justify-content:center;height:60vh;font-family:'IBM Plex Mono';color:var(--muted);font-size:13px;}
+
+</style>
+</head>
+<body data-mode="full">
+
+<header>
+  <div class="nav-inner">
+    <div class="logo">PRINCE<span class="dot">.</span>BUILDERS</div>
+    <nav>
+      <ul>
+        <li><a href="#pillars" onclick="setMode('full')">What We Do</a></li>
+        <li><a href="#retailers" onclick="setMode('marketplace')">Retailers</a></li>
+        <li><a href="#materials" onclick="setMode('full')">Materials</a></li>
+        <li><a href="#process" onclick="setMode('full')">Process</a></li>
+        <li><a href="#team">Team</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </nav>
+    <button id="calcNavBtn" class="nav-cta" style="border:1px solid var(--gold);background:transparent;margin-right:10px;">Cost Calculator</button>
+    <a href="#contact" class="nav-cta">Book Site Visit</a>
+    <button class="burger" id="burgerBtn" aria-label="Open menu">☰</button>
+  </div>
+</header>
+
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-close" id="mobileClose" aria-label="Close menu">✕</button>
+  <ul>
+    <li><a href="#pillars" onclick="setMode('full')">What We Do</a></li>
+    <li><a href="#retailers" onclick="setMode('marketplace')">Retailers</a></li>
+    <li><a href="#materials" onclick="setMode('full')">Materials</a></li>
+    <li><a href="#process" onclick="setMode('full')">Process</a></li>
+    <li><a href="#team">Team</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#" id="calcNavBtnMobile">Cost Calculator →</a></li>
+  </ul>
+</div>
+
+<!-- ================= SCREENSAVER: how Prince Builders works ================= -->
+<div class="ss-overlay" id="ssOverlay">
+  <div class="blueprint-bg dark"></div>
+  <div class="light-field" id="ssLightField">
+    <div class="glow-orb gold" style="top:-160px;left:-100px;"></div>
+    <div class="glow-orb brick" style="bottom:-140px;right:-80px;"></div>
+    <div class="glow-orb steel" style="top:30%;right:8%;"></div>
+    <div class="scan-line" style="animation-delay:0s;"></div>
+    <div class="scan-line" style="animation-delay:3s;background:linear-gradient(to bottom, transparent, var(--brick-light), transparent);box-shadow:0 0 24px 3px rgba(63,148,132,0.6);"></div>
+    <div class="scan-line" style="animation-delay:6s;background:linear-gradient(to bottom, transparent, var(--gold-soft), transparent);box-shadow:0 0 24px 3px rgba(224,184,118,0.6);"></div>
+  </div>
+
+  <div class="ss-copy">
+    <span class="tag-label mono">How Prince Builders works</span>
+    <h2 id="ssHeadline">Your Call Comes In</h2>
+    <p id="ssSub">One number, and the file opens.</p>
+  </div>
+
+  <div class="ss-frame">
+  <div class="ss-stage">
+    <!-- Scene 1: The Call -->
+    <div class="ss-scene active" data-scene="0">
+      <svg viewBox="0 0 800 460" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <radialGradient id="skyCall" cx="50%" cy="35%" r="75%">
+            <stop offset="0%" stop-color="#22392f"/>
+            <stop offset="100%" stop-color="#0f2019"/>
+          </radialGradient>
+        </defs>
+        <rect x="0" y="0" width="800" height="460" fill="url(#skyCall)"/>
+        <circle class="ring-wave" cx="400" cy="230" r="70" fill="none" stroke="var(--gold)" stroke-width="2.5"/>
+        <circle class="ring-wave" cx="400" cy="230" r="70" fill="none" stroke="var(--gold)" stroke-width="2.5" style="animation-delay:0.5s;"/>
+        <circle class="ring-wave" cx="400" cy="230" r="70" fill="none" stroke="var(--gold)" stroke-width="2.5" style="animation-delay:1s;"/>
+        <g class="phone-shake glow-breathe">
+          <rect x="352" y="160" width="96" height="150" rx="16" fill="#182821" stroke="var(--gold-soft)" stroke-width="3"/>
+          <rect x="366" y="180" width="68" height="98" rx="4" fill="#0d1712" stroke="var(--brick-light)" stroke-width="1.5"/>
+          <line x1="382" y1="182" x2="418" y2="182" stroke="var(--gold-soft)" stroke-width="2"/>
+          <circle cx="400" cy="292" r="6" fill="var(--gold-soft)"/>
+          <path d="M386,215 q14,-16 28,0" stroke="var(--brick-light)" stroke-width="2.5" fill="none"/>
+          <circle cx="400" cy="240" r="3" fill="var(--brick-light)"/>
+        </g>
+        <text x="400" y="380" text-anchor="middle" font-family="IBM Plex Mono" font-size="13" letter-spacing="0.12em" fill="var(--concrete-2)" opacity="0.75">INCOMING · +91 00000 00000</text>
+      </svg>
+    </div>
+
+    <!-- Scene 2: Site Visit -->
+    <div class="ss-scene" data-scene="1">
+      <svg viewBox="0 0 800 460" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="skyVisit" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1c3129"/>
+            <stop offset="100%" stop-color="#0f2019"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="800" height="460" fill="url(#skyVisit)"/>
+        <line x1="0" y1="360" x2="800" y2="360" stroke="rgba(255,255,255,0.14)" stroke-width="2"/>
+        <ellipse class="dust" cx="150" cy="368" rx="20" ry="6" fill="rgba(224,184,118,0.35)"/>
+        <ellipse class="dust" cx="175" cy="368" rx="16" ry="5" fill="rgba(224,184,118,0.25)" style="animation-delay:.4s;"/>
+        <g class="van-drive">
+          <rect x="190" y="255" width="200" height="90" rx="10" fill="#1c332a" stroke="var(--concrete-2)" stroke-width="3"/>
+          <rect x="390" y="280" width="70" height="65" rx="8" fill="#233d32" stroke="var(--concrete-2)" stroke-width="3"/>
+          <rect x="410" y="298" width="34" height="28" rx="3" fill="#0f2019" stroke="var(--gold-soft)" stroke-width="1.5"/>
+          <rect x="200" y="200" width="150" height="16" rx="4" fill="var(--brick)"/>
+          <text x="275" y="213" text-anchor="middle" font-family="Big Shoulders Display" font-size="13" fill="#fff" letter-spacing="0.05em">PRINCE BUILDERS</text>
+          <circle class="headlight" cx="450" cy="322" r="6" fill="var(--gold-soft)"/>
+          <circle cx="255" cy="352" r="20" fill="#101d18" stroke="var(--concrete-2)" stroke-width="3"/>
+          <circle cx="255" cy="352" r="6" fill="var(--concrete-2)"/>
+          <circle cx="405" cy="352" r="20" fill="#101d18" stroke="var(--concrete-2)" stroke-width="3"/>
+          <circle cx="405" cy="352" r="6" fill="var(--concrete-2)"/>
+        </g>
+        <g class="glow-breathe">
+          <path d="M600,190 C600,235 570,262 570,300 C570,328 630,328 630,300 C630,262 600,235 600,190 Z" fill="var(--gold)"/>
+          <circle cx="600" cy="230" r="12" fill="#0f2019"/>
+        </g>
+        <text x="400" y="410" text-anchor="middle" font-family="IBM Plex Mono" font-size="13" letter-spacing="0.1em" fill="var(--concrete-2)" opacity="0.75">SITE FILE · PLOT SURVEY IN PROGRESS</text>
+      </svg>
+    </div>
+
+    <!-- Scene 3: Material Delivery -->
+    <div class="ss-scene" data-scene="2">
+      <svg viewBox="0 0 800 460" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="skyMat" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#20362c"/>
+            <stop offset="100%" stop-color="#0f2019"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="800" height="460" fill="url(#skyMat)"/>
+        <line x1="0" y1="370" x2="800" y2="370" stroke="rgba(255,255,255,0.14)" stroke-width="2"/>
+        <g class="crane-swing">
+          <line x1="150" y1="370" x2="150" y2="80" stroke="var(--steel-light)" stroke-width="5"/>
+          <line x1="150" y1="90" x2="400" y2="90" stroke="var(--steel-light)" stroke-width="5"/>
+          <line x1="150" y1="110" x2="200" y2="90" stroke="var(--steel-light)" stroke-width="3"/>
+          <line x1="360" y1="90" x2="360" y2="175" stroke="var(--steel-light)" stroke-width="3"/>
+        </g>
+        <rect class="glow-breathe" x="320" y="175" width="80" height="26" fill="var(--brick)"/>
+        <g class="van-drive" style="animation-delay:.2s;">
+          <rect x="460" y="270" width="220" height="80" rx="8" fill="#1c332a" stroke="var(--concrete-2)" stroke-width="3"/>
+          <rect x="478" y="205" width="90" height="58" fill="var(--brick)" opacity="0.92"/>
+          <rect x="478" y="205" width="90" height="58" fill="none" stroke="#0f2019" stroke-width="2"/>
+          <rect x="576" y="215" width="80" height="48" fill="var(--brick-light)" opacity="0.85"/>
+          <rect x="576" y="215" width="80" height="48" fill="none" stroke="#0f2019" stroke-width="2"/>
+          <circle class="headlight" cx="670" cy="332" r="7" fill="var(--gold-soft)"/>
+          <circle cx="520" cy="360" r="22" fill="#101d18" stroke="var(--concrete-2)" stroke-width="3"/>
+          <circle cx="520" cy="360" r="7" fill="var(--concrete-2)"/>
+          <circle cx="630" cy="360" r="22" fill="#101d18" stroke="var(--concrete-2)" stroke-width="3"/>
+          <circle cx="630" cy="360" r="7" fill="var(--concrete-2)"/>
+        </g>
+        <ellipse class="dust" cx="450" cy="358" rx="18" ry="6" fill="rgba(224,184,118,0.3)"/>
+        <text x="400" y="415" text-anchor="middle" font-family="IBM Plex Mono" font-size="13" letter-spacing="0.1em" fill="var(--concrete-2)" opacity="0.75">STEEL · BRICK · SAND · STONE — LAB-CHECKED</text>
+      </svg>
+    </div>
+
+    <!-- Scene 4: Build in progress -->
+    <div class="ss-scene" data-scene="3">
+      <svg viewBox="0 0 800 460" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="skyBuild" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1e3a30"/>
+            <stop offset="100%" stop-color="#0f2019"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="800" height="460" fill="url(#skyBuild)"/>
+        <line x1="0" y1="385" x2="800" y2="385" stroke="rgba(255,255,255,0.14)" stroke-width="2"/>
+        <polygon points="300,385 300,220 400,140 500,220 500,385" fill="none" stroke="var(--steel-light)" stroke-width="3.5" stroke-dasharray="9 7"/>
+        <line x1="300" y1="300" x2="500" y2="300" stroke="var(--gold)" stroke-width="2.5" stroke-dasharray="5 5"/>
+        <line x1="300" y1="260" x2="500" y2="260" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" stroke-dasharray="3 6"/>
+        <g>
+          <line x1="290" y1="385" x2="290" y2="230" stroke="var(--steel)" stroke-width="4"/>
+          <line x1="510" y1="385" x2="510" y2="230" stroke="var(--steel)" stroke-width="4"/>
+          <line x1="290" y1="230" x2="330" y2="200" stroke="var(--steel)" stroke-width="3"/>
+          <line x1="510" y1="230" x2="470" y2="200" stroke="var(--steel)" stroke-width="3"/>
+        </g>
+        <g class="crane-swing" style="transform-origin:230px 100px;">
+          <line x1="230" y1="385" x2="230" y2="90" stroke="var(--steel-light)" stroke-width="5"/>
+          <line x1="230" y1="100" x2="440" y2="100" stroke="var(--steel-light)" stroke-width="5"/>
+          <line x1="400" y1="100" x2="400" y2="150" stroke="var(--steel-light)" stroke-width="3"/>
+        </g>
+        <rect class="glow-breathe" x="378" y="150" width="44" height="16" fill="var(--brick)"/>
+        <circle class="sparkle" cx="330" cy="180" r="3" fill="var(--gold-soft)"/>
+        <circle class="sparkle" cx="470" cy="240" r="3" fill="var(--gold-soft)" style="animation-delay:.6s;"/>
+        <text x="400" y="425" text-anchor="middle" font-family="IBM Plex Mono" font-size="13" letter-spacing="0.1em" fill="var(--concrete-2)" opacity="0.75">CREW ON SITE · STAGED QUALITY CHECKS</text>
+      </svg>
+    </div>
+
+    <!-- Scene 5: Dream home delivered -->
+    <div class="ss-scene" data-scene="4">
+      <svg viewBox="0 0 800 460" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <radialGradient id="skyDone" cx="50%" cy="30%" r="80%">
+            <stop offset="0%" stop-color="#2c4a3a"/>
+            <stop offset="100%" stop-color="#0f2019"/>
+          </radialGradient>
+        </defs>
+        <rect x="0" y="0" width="800" height="460" fill="url(#skyDone)"/>
+        <line x1="0" y1="390" x2="800" y2="390" stroke="rgba(255,255,255,0.14)" stroke-width="2"/>
+        <ellipse cx="400" cy="392" rx="180" ry="14" fill="rgba(0,0,0,0.3)"/>
+        <g class="glow-breathe">
+          <polygon points="290,390 290,240 400,155 510,240 510,390" fill="#e4d6b0"/>
+          <polygon points="265,255 400,155 535,255 510,240 400,175 290,240" fill="var(--brick)"/>
+          <rect x="368" y="310" width="64" height="80" fill="var(--ink)"/>
+          <rect x="373" y="315" width="24" height="34" fill="#0f2019" opacity="0.4"/>
+          <rect x="308" y="270" width="46" height="46" fill="var(--gold)"/>
+          <rect x="446" y="270" width="46" height="46" fill="var(--gold)"/>
+          <line x1="331" y1="270" x2="331" y2="316" stroke="#0f2019" stroke-width="2"/>
+          <line x1="308" y1="293" x2="354" y2="293" stroke="#0f2019" stroke-width="2"/>
+          <line x1="469" y1="270" x2="469" y2="316" stroke="#0f2019" stroke-width="2"/>
+          <line x1="446" y1="293" x2="492" y2="293" stroke="#0f2019" stroke-width="2"/>
+        </g>
+        <circle class="sparkle" cx="230" cy="190" r="4" fill="var(--gold-soft)"/>
+        <circle class="sparkle" cx="590" cy="170" r="4" fill="var(--gold-soft)" style="animation-delay:.5s;"/>
+        <circle class="sparkle" cx="630" cy="290" r="4" fill="var(--gold-soft)" style="animation-delay:1s;"/>
+        <circle class="sparkle" cx="180" cy="300" r="4" fill="var(--gold-soft)" style="animation-delay:1.4s;"/>
+        <circle class="sparkle" cx="400" cy="120" r="3" fill="var(--gold-soft)" style="animation-delay:.8s;"/>
+        <text x="400" y="425" text-anchor="middle" font-family="IBM Plex Mono" font-size="13" letter-spacing="0.1em" fill="var(--gold-soft)" opacity="0.9">HANDED OVER · YOUR DREAM HOME</text>
+      </svg>
+    </div>
+  </div>
+  </div>
+
+  <div class="ss-rail" id="ssRail">
+    <div class="r-item active"><span class="dot"></span>The Call</div>
+    <div class="r-item"><span class="dot"></span>Site Visit</div>
+    <div class="r-item"><span class="dot"></span>Material</div>
+    <div class="r-item"><span class="dot"></span>Build</div>
+    <div class="r-item"><span class="dot"></span>Delivered</div>
+  </div>
+
+  <div class="ss-hint mono">Move, tap or scroll to go back</div>
+</div>
+
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <div class="blueprint-bg"></div>
+  <div class="light-field on-light">
+    <div class="glow-orb gold"></div>
+    <div class="glow-orb brick"></div>
+    <div class="glow-orb steel"></div>
+    <div class="scan-line" style="animation-delay:0s;"></div>
+    <div class="scan-line" style="animation-delay:4.5s; opacity:0.3;"></div>
+    <div class="crosshair" style="top:12%;left:8%;animation-delay:.4s;"></div>
+    <div class="crosshair" style="top:70%;left:88%;animation-delay:1.6s;"></div>
+    <div class="crosshair" style="top:85%;left:15%;animation-delay:2.4s;"></div>
+  </div>
+  <div class="wrap hero-grid" style="position:relative;z-index:2;">
+    <div>
+      <span class="tag-label mono">Ek Call · Ek Ghar — One Call, One Home</span>
+      <h1>Blueprint<br>To <em>Built</em>.</h1>
+      <p class="lead">Steel, marble, bricks, sand — and the hands to build with them. One call, one visit, one dream home.</p>
+      <div class="hero-actions">
+        <a href="#" id="calcHeroBtn" class="btn-primary">🧮 Calculate My Home Cost →</a>
+        <a href="#materials" class="btn-secondary">View Material Catalog</a>
+      </div>
+      <div class="hero-stats">
+        <div><strong>4+1</strong><span>Primary Steel Brands</span></div>
+        <div><strong>3</strong><span>Quarry Sourced Regions</span></div>
+        <div><strong>2</strong><span>Budget Classes, Same Testing</span></div>
+      </div>
+    </div>
+    <div class="house-stage tilt-parent" aria-hidden="true">
+      <span class="stage-label l1">DWG — DREAM-HOME.001</span>
+      <span class="stage-label l2">STATUS: BUILT</span>
+      <svg viewBox="0 0 400 400" class="tilt" id="heroSvg" style="filter:drop-shadow(0 30px 40px rgba(44,36,24,0.3));">
+        <!-- ground line -->
+        <line class="blueline" x1="30" y1="330" x2="370" y2="330" style="stroke-dasharray:340;stroke-dashoffset:340;animation-delay:0s;"/>
+        <!-- house outline -->
+        <polygon class="blueline" points="90,330 90,190 200,110 310,190 310,330" />
+        <!-- roof line accent -->
+        <polyline class="blueline" points="70,205 200,110 330,205" style="animation-delay:.3s;"/>
+        <!-- door -->
+        <rect class="blueline" x="180" y="255" width="45" height="75" style="animation-delay:.5s;"/>
+        <!-- windows -->
+        <rect class="blueline" x="115" y="235" width="42" height="42" style="animation-delay:.6s;"/>
+        <rect class="blueline" x="245" y="235" width="42" height="42" style="animation-delay:.6s;"/>
+        <!-- window cross -->
+        <line class="blueline" x1="136" y1="235" x2="136" y2="277" style="animation-delay:.8s;"/>
+        <line class="blueline" x1="115" y1="256" x2="157" y2="256" style="animation-delay:.8s;"/>
+        <line class="blueline" x1="266" y1="235" x2="266" y2="277" style="animation-delay:.8s;"/>
+        <line class="blueline" x1="245" y1="256" x2="287" y2="256" style="animation-delay:.8s;"/>
+
+        <!-- filled building -->
+        <polygon class="fillshape wall" points="90,330 90,190 200,110 310,190 310,330"/>
+        <polygon class="fillshape roof" points="70,205 200,110 330,205 310,190 200,130 90,190"/>
+        <rect class="fillshape door" x="180" y="255" width="45" height="75"/>
+        <rect class="fillshape window" x="115" y="235" width="42" height="42"/>
+        <rect class="fillshape window" x="245" y="235" width="42" height="42"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PATH CHOOSER ================= -->
+<section class="pad path-chooser" id="pathChooser">
+  <div class="wrap">
+    <div class="section-head reveal" style="margin:0 auto 40px;text-align:center;max-width:640px;">
+      <span class="tag-label mono" style="justify-content:center;">Two ways to work with us</span>
+      <h2>Pick Your Path</h2>
+      <p style="margin-left:auto;margin-right:auto;">Just need material, or want the whole thing handled? Choose below — switch anytime.</p>
+    </div>
+    <div class="path-grid reveal">
+      <div class="path-card" onclick="setMode('marketplace')">
+        <span class="path-tag mono">PATH / 01</span>
+        <h3>Just Need Material</h3>
+        <p>Browse verified local retailers near you and compare their rates on steel, brick, sand, stone and marble — no obligation to build with us.</p>
+        <span class="path-cta mono">Browse Retailers →</span>
+      </div>
+      <div class="path-card featured" onclick="setMode('full')">
+        <span class="path-tag mono">PATH / 02</span>
+        <h3>Let Us Build It</h3>
+        <p>Architect, material and labour — all from us, at our own rates, start to handover. This is our full-service build.</p>
+        <span class="path-cta mono">See Full Service →</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= RETAILER MARKETPLACE ================= -->
+<section class="pad marketplace-only" id="retailers">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="tag-label mono">Local retailer marketplace</span>
+      <h2>Compare Rates.<br>Buy From Whoever Suits You.</h2>
+      <p>Sponsored retailers appear first because they pay to advertise here — every other verified retailer near you is listed below with their own stock and rates.</p>
+      <p style="margin-top:10px;"><a onclick="setMode('full')" style="text-decoration:underline;cursor:pointer;color:var(--brick);font-family:'IBM Plex Mono';font-size:12.5px;">Want us to handle the whole build instead? See our full service →</a></p>
+    </div>
+
+    <div class="retailer-group reveal">
+      <div class="retailer-label mono">Sponsored Listings</div>
+      <div class="retailer-grid">
+        <div class="retailer-card sponsored">
+          <span class="sponsor-badge mono">Sponsored</span>
+          <h4>Haryana Steel &amp; Hardware</h4>
+          <div class="retailer-loc mono">Panipat, Haryana · 2.1 km away</div>
+          <div class="retailer-tags"><span>Steel</span><span>Cement</span><span>Sand</span></div>
+          <ul class="retailer-rates">
+            <li><span>Jindal Panther TMT</span><span>₹68/kg</span></li>
+            <li><span>Atella Sand</span><span>₹54/cft</span></li>
+          </ul>
+          <a href="tel:+910000000001" class="btn-secondary" style="width:100%;text-align:center;margin-top:14px;">Contact Retailer</a>
+        </div>
+        <div class="retailer-card sponsored">
+          <span class="sponsor-badge mono">Sponsored</span>
+          <h4>Sonipat Marble House</h4>
+          <div class="retailer-loc mono">Sonipat, Haryana · 6.4 km away</div>
+          <div class="retailer-tags"><span>Marble</span><span>Granite</span><span>Tiles</span></div>
+          <ul class="retailer-rates">
+            <li><span>Katni Marble</span><span>₹63/sqft</span></li>
+            <li><span>Granite</span><span>₹88/sqft</span></li>
+          </ul>
+          <a href="tel:+910000000002" class="btn-secondary" style="width:100%;text-align:center;margin-top:14px;">Contact Retailer</a>
+        </div>
+        <div class="retailer-card sponsored">
+          <span class="sponsor-badge mono">Sponsored</span>
+          <h4>Karnal Crusher &amp; Grit Co.</h4>
+          <div class="retailer-loc mono">Karnal, Haryana · 9.8 km away</div>
+          <div class="retailer-tags"><span>Crusher Stone</span><span>Sand</span></div>
+          <ul class="retailer-rates">
+            <li><span>20mm Crusher Stone</span><span>₹40/cft</span></li>
+            <li><span>Dadri Sand</span><span>₹47/cft</span></li>
+          </ul>
+          <a href="tel:+910000000003" class="btn-secondary" style="width:100%;text-align:center;margin-top:14px;">Contact Retailer</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="retailer-group reveal" style="margin-top:50px;">
+      <div class="retailer-label mono">More Retailers Near You</div>
+      <div class="retailer-grid">
+        <div class="retailer-card">
+          <h4>Panipat Building Supplies</h4>
+          <div class="retailer-loc mono">Panipat, Haryana · 3.6 km away</div>
+          <div class="retailer-tags"><span>Bricks</span><span>Cement</span></div>
+          <ul class="retailer-rates">
+            <li><span>Red Clay Brick</span><span>₹8/unit</span></li>
+            <li><span>Fly Ash Brick</span><span>₹7/unit</span></li>
+          </ul>
+          <a href="tel:+910000000004" class="btn-secondary" style="width:100%;text-align:center;margin-top:14px;">Contact Retailer</a>
+        </div>
+        <div class="retailer-card">
+          <h4>Metro Steel Depot</h4>
+          <div class="retailer-loc mono">Panipat, Haryana · 4.9 km away</div>
+          <div class="retailer-tags"><span>Steel</span></div>
+          <ul class="retailer-rates">
+            <li><span>Metro Steel TMT</span><span>₹55/kg</span></li>
+            <li><span>Shyam Steel TMT</span><span>₹54/kg</span></li>
+          </ul>
+          <a href="tel:+910000000005" class="btn-secondary" style="width:100%;text-align:center;margin-top:14px;">Contact Retailer</a>
+        </div>
+        <div class="retailer-card">
+          <h4>Tosham Stone &amp; Sand Traders</h4>
+          <div class="retailer-loc mono">Tosham, Haryana · 41 km away</div>
+          <div class="retailer-tags"><span>Sand</span><span>Crusher Stone</span></div>
+          <ul class="retailer-rates">
+            <li><span>Tosham Sand</span><span>₹50/cft</span></li>
+            <li><span>40mm Crusher Stone</span><span>₹38/cft</span></li>
+          </ul>
+          <a href="tel:+910000000006" class="btn-secondary" style="width:100%;text-align:center;margin-top:14px;">Contact Retailer</a>
+        </div>
+        <div class="retailer-card">
+          <h4>Wonder Tiles &amp; Marble</h4>
+          <div class="retailer-loc mono">Karnal, Haryana · 8.2 km away</div>
+          <div class="retailer-tags"><span>Marble</span><span>Tiles</span></div>
+          <ul class="retailer-rates">
+            <li><span>Wonder Marble</span><span>₹75/sqft</span></li>
+            <li><span>Italian Marble</span><span>₹340/sqft</span></li>
+          </ul>
+          <a href="tel:+910000000007" class="btn-secondary" style="width:100%;text-align:center;margin-top:14px;">Contact Retailer</a>
+        </div>
+        <div class="retailer-card">
+          <h4>Kamdhenu Steel Point</h4>
+          <div class="retailer-loc mono">Sonipat, Haryana · 5.5 km away</div>
+          <div class="retailer-tags"><span>Steel</span><span>Cement</span></div>
+          <ul class="retailer-rates">
+            <li><span>Kamdhenu TMT</span><span>₹58/kg</span></li>
+          </ul>
+          <a href="tel:+910000000008" class="btn-secondary" style="width:100%;text-align:center;margin-top:14px;">Contact Retailer</a>
+        </div>
+        <div class="retailer-card">
+          <h4>Narnaul Grit Suppliers</h4>
+          <div class="retailer-loc mono">Narnaul, Haryana · 55 km away</div>
+          <div class="retailer-tags"><span>Crusher Stone</span></div>
+          <ul class="retailer-rates">
+            <li><span>60mm Crusher Stone</span><span>₹36/cft</span></li>
+          </ul>
+          <a href="tel:+910000000009" class="btn-secondary" style="width:100%;text-align:center;margin-top:14px;">Contact Retailer</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="jali-divider"></div>
+<!-- ================= THREE PILLARS ================= -->
+<section class="pad full-only" id="pillars">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="tag-label mono">Three ways we work</span>
+      <h2>One Company.<br>Three Interfaces.</h2>
+      <p>Bring your plot, your plan, or nothing at all — we slot in wherever you are.</p>
+    </div>
+  </div>
+  <div class="pillars reveal tilt-parent">
+    <div class="pillar tilt">
+      <span class="pillar-num mono">FILE / A</span>
+      <div class="pillar-icon"><svg viewBox="0 0 48 48"><rect x="6" y="6" width="36" height="36" rx="2"/><path d="M6 18h36M18 42V18"/><circle cx="30" cy="30" r="5"/></svg></div>
+      <h3>Material Supplier</h3>
+      <p class="pillar-copy">Already have a contractor? We just supply — tested material, delivered to site, at rates you won't find twice.</p>
+      <ul class="pillar-list">
+        <li>Quality-checked, lab-tested batches</li>
+        <li>Direct quarry &amp; mill sourcing</li>
+        <li>Bulk and per-project pricing</li>
+      </ul>
+    </div>
+    <div class="pillar tilt">
+      <span class="pillar-num mono">FILE / B</span>
+      <div class="pillar-icon"><svg viewBox="0 0 48 48"><path d="M8 40V20l16-12 16 12v20"/><path d="M20 40V26h8v14"/></svg></div>
+      <h3>Full Construction</h3>
+      <p class="pillar-copy">Give us the plot and budget. We design, build and supply it — start to handover.</p>
+      <ul class="pillar-list">
+        <li>Premium or budget-friendly class</li>
+        <li>In-house material, no third-party markup</li>
+        <li>Fixed-budget construction plans</li>
+      </ul>
+    </div>
+    <div class="pillar tilt">
+      <span class="pillar-num mono">FILE / C</span>
+      <div class="pillar-icon"><svg viewBox="0 0 48 48"><circle cx="16" cy="14" r="6"/><circle cx="32" cy="14" r="6"/><path d="M4 40v-4c0-6 6-10 12-10s12 4 12 10v4M22 40v-2c0-6 5-10 11-10s11 4 11 10v2"/></svg></div>
+      <h3>Manpower &amp; Architects</h3>
+      <p class="pillar-copy">Just need hands and expertise? Hire our architects and crew on their own.</p>
+      <ul class="pillar-list">
+        <li>Licensed architects &amp; civil engineers</li>
+        <li>Trained mason, mistri &amp; labour teams</li>
+        <li>Site supervision included</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PROCESS ================= -->
+<section class="pad process-dark dark-ctx full-only" id="process">
+  <div class="blueprint-bg dark"></div>
+  <div class="light-field">
+    <div class="glow-orb steel" style="top:-140px;left:20%;"></div>
+    <div class="glow-orb gold" style="width:400px;height:400px;bottom:-180px;right:-60px;top:auto;left:auto;"></div>
+  </div>
+  <div class="wrap" style="position:relative;z-index:2;">
+    <div class="section-head reveal">
+      <span class="tag-label mono">How it runs</span>
+      <h2>One Call.<br>One Meet. Home Built.</h2>
+      <p>One conversation. We handle design, material and labour behind it.</p>
+    </div>
+    <div class="process-steps reveal-stagger">
+      <div class="pstep"><span class="pnum">01</span><h4>Call / Enquiry</h4><p>Tell us your plot, city and rough budget.</p></div>
+      <div class="pstep"><span class="pnum">02</span><h4>Site Meet</h4><p>We visit, measure, and lock requirements.</p></div>
+      <div class="pstep"><span class="pnum">03</span><h4>Architect Design</h4><p>Layout &amp; elevation planned to your budget class.</p></div>
+      <div class="pstep"><span class="pnum">04</span><h4>Material Selection</h4><p>Pick steel, marble, stone &amp; sand from our certified catalog.</p></div>
+      <div class="pstep"><span class="pnum">05</span><h4>Build</h4><p>Civil engineers &amp; crew execute with staged quality checks.</p></div>
+      <div class="pstep"><span class="pnum">06</span><h4>Handover</h4><p>Your dream home, delivered and certified.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ASSEMBLY (labour + architect + material) ================= -->
+<section class="pad assembly-section full-only">
+  <div class="wrap">
+    <div class="section-head reveal" style="margin:0 auto 20px;text-align:center;max-width:640px;">
+      <span class="tag-label mono" style="justify-content:center;">वास्तुकार + सामग्री + मज़दूर</span>
+      <h2>Three Forces.<br>One Home.</h2>
+      <p style="margin-left:auto;margin-right:auto;">Architect, material and labour — flowing from our site straight to yours.</p>
+    </div>
+    <div class="assembly-stage reveal">
+      <svg viewBox="0 0 900 400" class="assembly-svg">
+        <path id="pathArch" class="a-path" d="M150,120 C150,230 300,270 430,300"/>
+        <path id="pathMat" class="a-path" d="M450,90 C450,180 450,230 450,300"/>
+        <path id="pathLab" class="a-path" d="M750,120 C750,230 600,270 470,300"/>
+
+        <!-- Architect node -->
+        <g class="a-node">
+          <circle cx="150" cy="90" r="46"/>
+          <path d="M130,105 L150,70 L170,105 M137,92 L163,92" class="a-glyph"/>
+        </g>
+        <!-- Material node -->
+        <g class="a-node">
+          <circle cx="450" cy="60" r="46"/>
+          <rect x="428" y="55" width="18" height="14" class="a-glyph-fill"/>
+          <rect x="450" y="55" width="18" height="14" class="a-glyph-fill" opacity="0.7"/>
+          <rect x="439" y="41" width="18" height="14" class="a-glyph-fill" opacity="0.85"/>
+        </g>
+        <!-- Labour node -->
+        <g class="a-node">
+          <circle cx="750" cy="90" r="46"/>
+          <path d="M730,100 a20,14 0 0,1 40,0 z" class="a-glyph-fill"/>
+          <line x1="722" y1="100" x2="778" y2="100" class="a-glyph"/>
+          <line x1="742" y1="115" x2="758" y2="130" class="a-glyph"/>
+        </g>
+
+        <!-- particles traveling into the house -->
+        <circle r="5" class="a-dot gold">
+          <animateMotion dur="3.2s" repeatCount="indefinite" path="M150,120 C150,230 300,270 430,300"/>
+        </circle>
+        <circle r="5" class="a-dot brick">
+          <animateMotion dur="2.8s" repeatCount="indefinite" begin="0.6s" path="M450,90 C450,180 450,230 450,300"/>
+        </circle>
+        <circle r="5" class="a-dot steel">
+          <animateMotion dur="3.2s" repeatCount="indefinite" begin="1.1s" path="M750,120 C750,230 600,270 470,300"/>
+        </circle>
+
+        <!-- House, assembling from the three flows -->
+        <g class="a-house">
+          <polygon class="a-house-wall" points="400,380 400,320 450,285 500,320 500,380"/>
+          <polygon class="a-house-roof" points="388,325 450,285 512,325 500,320 450,295 400,320"/>
+          <rect class="a-house-door" x="437" y="345" width="26" height="35"/>
+        </g>
+
+        <text x="150" y="158" class="a-label">ARCHITECT</text>
+        <text x="450" y="128" class="a-label">MATERIAL</text>
+        <text x="750" y="158" class="a-label">LABOUR</text>
+        <text x="450" y="398" class="a-label a-label-house">YOUR DREAM HOME</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MATERIALS ================= -->
+<section class="pad full-only" id="materials">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="tag-label mono">Our own catalog</span>
+      <h2>Every Material,<br>Lab-Checked, Best Rate.</h2>
+      <p>Real brands, real sources, real grades — exactly what's going into your home, supplied and priced by us.</p>
+      <p style="margin-top:10px;"><a onclick="setMode('marketplace')" style="text-decoration:underline;cursor:pointer;color:var(--brick);font-family:'IBM Plex Mono';font-size:12.5px;">Just need material instead? Browse local retailers →</a></p>
+    </div>
+
+    <div class="mat-tabs reveal" role="tablist">
+      <button class="mat-tab active" data-tab="steel">Steel (TMT Bars)</button>
+      <button class="mat-tab" data-tab="marble">Marble &amp; Granite</button>
+      <button class="mat-tab" data-tab="stone">Crusher Stone</button>
+      <button class="mat-tab" data-tab="sand">Sand &amp; Dust</button>
+    </div>
+
+    <!-- STEEL -->
+    <div class="mat-panel active" id="panel-steel">
+      <div class="mat-intro">
+        <h3>Premium Steel</h3>
+        <span class="source mono">Only 4 mill-certified primary brands</span>
+      </div>
+      <div class="mat-grid tilt-parent">
+        <div class="mat-card tilt">
+          <div class="swatch sw-jindal"></div>
+          <h4>Jindal Panther</h4>
+          <span class="grade">TMT · Fe 500D</span>
+          <ul>
+            <li>High tensile strength &amp; ductility</li>
+            <li>Superior earthquake resistance</li>
+            <li>Corrosion resistant ribbing</li>
+          </ul>
+        </div>
+        <div class="mat-card tilt">
+          <div class="swatch sw-jsw"></div>
+          <h4>JSW Neosteel</h4>
+          <span class="grade">TMT · Fe 550D</span>
+          <ul>
+            <li>Fine-grain, low carbon core</li>
+            <li>Excellent weldability</li>
+            <li>Consistent cross-section, less wastage</li>
+          </ul>
+        </div>
+        <div class="mat-card tilt">
+          <div class="swatch sw-tata"></div>
+          <h4>Tata Tiscon</h4>
+          <span class="grade">TMT · Fe 500</span>
+          <ul>
+            <li>Uniform elongation, high bendability</li>
+            <li>Rust &amp; fire resistant coating</li>
+            <li>Trusted for high-rise structures</li>
+          </ul>
+        </div>
+        <div class="mat-card tilt">
+          <div class="swatch sw-sail"></div>
+          <h4>SAIL TMT</h4>
+          <span class="grade">TMT · Fe 500</span>
+          <ul>
+            <li>Government-grade mill certification</li>
+            <li>High load-bearing capacity</li>
+            <li>Reliable for foundation &amp; columns</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mat-intro" style="margin-top:44px;">
+        <h3>Secondary Steel</h3>
+        <span class="source mono">Budget grade, still ISI certified</span>
+      </div>
+      <div class="mat-grid tilt-parent">
+        <div class="mat-card tilt">
+          <div class="swatch sw-kamdhenu"></div>
+          <h4>Kamdhenu</h4>
+          <span class="grade">TMT · Fe 500</span>
+          <ul>
+            <li>Cost-effective for low-rise builds</li>
+            <li>ISI-marked basic grade</li>
+            <li>Good for boundary &amp; retaining walls</li>
+          </ul>
+        </div>
+        <div class="mat-card tilt">
+          <div class="swatch sw-metro"></div>
+          <h4>Metro Steel</h4>
+          <span class="grade">TMT · Fe 500</span>
+          <ul>
+            <li>Reliable mid-budget option</li>
+            <li>Decent strength-to-cost ratio</li>
+            <li>Common for slab reinforcement</li>
+          </ul>
+        </div>
+        <div class="mat-card tilt">
+          <div class="swatch sw-shyam"></div>
+          <h4>Shyam Steel</h4>
+          <span class="grade">TMT · Fe 500</span>
+          <ul>
+            <li>Wide availability, quick delivery</li>
+            <li>Suited to budget-class housing</li>
+            <li>Certified &amp; batch-tested</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- MARBLE -->
+    <div class="mat-panel" id="panel-marble">
+      <div class="mat-intro">
+        <h3>Marble, Granite &amp; Stone Finishes</h3>
+        <span class="source mono">Indian &amp; imported slabs</span>
+      </div>
+      <div class="mat-grid tilt-parent">
+        <div class="mat-card tilt">
+          <div class="swatch sw-katni"></div>
+          <h4>Katni Marble</h4>
+          <span class="grade">Indian · Beige/Cream</span>
+          <ul>
+            <li>Durable with low water absorption</li>
+            <li>Premium look at a friendly budget</li>
+            <li>Natural warm veining</li>
+          </ul>
+        </div>
+        <div class="mat-card tilt">
+          <div class="swatch sw-granite"></div>
+          <h4>Granite</h4>
+          <span class="grade">Natural Stone</span>
+          <ul>
+            <li>Extremely hard, scratch resistant</li>
+            <li>Heat resistant — ideal for kitchens</li>
+            <li>Wide range of colours &amp; patterns</li>
+          </ul>
+        </div>
+        <div class="mat-card tilt">
+          <div class="swatch sw-wonder"></div>
+          <h4>Wonder Marble</h4>
+          <span class="grade">Indian · High Gloss</span>
+          <ul>
+            <li>Uniform pattern, high polish finish</li>
+            <li>Cost-effective elegance</li>
+            <li>Great for large open floors</li>
+          </ul>
+        </div>
+        <div class="mat-card tilt">
+          <div class="swatch sw-italian"></div>
+          <h4>Italian Marble</h4>
+          <span class="grade">Imported · Luxury</span>
+          <ul>
+            <li>Unique natural veining, timeless finish</li>
+            <li>High compressive strength</li>
+            <li>Signature choice for premium-class homes</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- STONE -->
+    <div class="mat-panel" id="panel-stone">
+      <div class="mat-intro">
+        <h3>Crusher Stone (Grit)</h3>
+        <span class="source mono">Sourced from Tosham · Narnaul · Dadri</span>
+      </div>
+      <div class="mat-grid tilt-parent">
+        <div class="mat-card tilt">
+          <div class="swatch sw-40mm"></div>
+          <h4>40mm Grit</h4>
+          <span class="grade">Foundation &amp; Base</span>
+          <ul>
+            <li>Used for soling &amp; base layers</li>
+            <li>High load-bearing, low absorption</li>
+            <li>Machine-crushed uniform size</li>
+          </ul>
+        </div>
+        <div class="mat-card tilt">
+          <div class="swatch sw-20mm"></div>
+          <h4>20mm Grit</h4>
+          <span class="grade">RCC &amp; Plaster</span>
+          <ul>
+            <li>Standard for RCC concrete mix</li>
+            <li>Used in raw flooring beds</li>
+            <li>Consistent grading, low silt</li>
+          </ul>
+        </div>
+        <div class="mat-card tilt">
+          <div class="swatch sw-60mm"></div>
+          <h4>60mm Grit</h4>
+          <span class="grade">Heavy Foundation</span>
+          <ul>
+            <li>Deep foundation &amp; soling work</li>
+            <li>Sourced from hard quarry rock</li>
+            <li>Excellent compaction strength</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SAND -->
+    <div class="mat-panel" id="panel-sand">
+      <div class="mat-intro">
+        <h3>Sand &amp; Dust</h3>
+        <span class="source mono">Sourced from Atella · Tosham · Dadri</span>
+      </div>
+      <div class="mat-grid tilt-parent">
+        <div class="mat-card tilt">
+          <div class="swatch sw-atella"></div>
+          <h4>Atella Sand</h4>
+          <span class="grade">Fine Grade</span>
+          <ul>
+            <li>Silt-free, well-graded fine sand</li>
+            <li>Ideal for plastering &amp; finishing</li>
+            <li>Sourced direct from quarry</li>
+          </ul>
+        </div>
+        <div class="mat-card tilt">
+          <div class="swatch sw-tosham-s"></div>
+          <h4>Tosham Sand</h4>
+          <span class="grade">Coarse Grade</span>
+          <ul>
+            <li>High compressive strength in RCC</li>
+            <li>Low impurity content</li>
+            <li>Good binding for brickwork</li>
+          </ul>
+        </div>
+        <div class="mat-card tilt">
+          <div class="swatch sw-dadri-s"></div>
+          <h4>Dadri Sand</h4>
+          <span class="grade">Medium Grade</span>
+          <ul>
+            <li>Balanced grain for general use</li>
+            <li>Consistent quality, batch tested</li>
+            <li>No middlemen — quarry direct pricing</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================= BUDGET TIERS ================= -->
+<section class="pad full-only">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="tag-label mono">Build to your budget</span>
+      <h2>Two Classes.<br>Zero Compromise On Testing.</h2>
+      <p>High-end or budget-friendly — every material passes the same checks.</p>
+    </div>
+    <div class="tier-grid reveal">
+      <div class="tier premium">
+        <span class="tier-tag mono">Class 01</span>
+        <h3>Premium Build</h3>
+        <ul>
+          <li>Italian marble &amp; granite finishes <span class="check mono">✓ tested</span></li>
+          <li>Primary steel — Jindal / JSW / Tata / SAIL <span class="check mono">✓ certified</span></li>
+          <li>Dedicated architect &amp; design team <span class="check mono">✓ included</span></li>
+          <li>High-end fittings &amp; futuristic layouts <span class="check mono">✓ custom</span></li>
+        </ul>
+      </div>
+      <div class="tier">
+        <span class="tier-tag mono">Class 02</span>
+        <h3>Smart Budget Build</h3>
+        <ul>
+          <li>Katni / Wonder marble finishes <span class="check mono">✓ tested</span></li>
+          <li>Secondary steel — Kamdhenu / Metro / Shyam <span class="check mono">✓ certified</span></li>
+          <li>Standard architect design package <span class="check mono">✓ included</span></li>
+          <li>Same lab checks, economical material grade <span class="check mono">✓ labelled</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TEAM ================= -->
+<section class="pad" id="team">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="tag-label mono">Who builds it</span>
+      <h2>One Crew. Every Skill On-Site.</h2>
+      <p>No subcontractor chains — our own people, on every project. A coordinator assigns and tracks each file from call to handover; every material batch and every retailer listing is checked by the same quality desk before it reaches you.</p>
+    </div>
+    <div class="team-grid reveal-stagger tilt-parent">
+      <div class="team-card tilt">
+        <div class="team-icon"><svg viewBox="0 0 44 44"><rect x="6" y="8" width="32" height="24" rx="2"/><line x1="6" y1="16" x2="38" y2="16"/><circle cx="14" cy="12" r="1.4" fill="var(--steel)" stroke="none"/><line x1="12" y1="24" x2="32" y2="24"/><line x1="12" y1="28" x2="24" y2="28"/></svg></div>
+        <h4>Project Coordinator</h4>
+        <p>Opens your file on the first call, assigns architect, material and crew, and tracks the build to handover.</p>
+      </div>
+      <div class="team-card tilt">
+        <div class="team-icon"><svg viewBox="0 0 44 44"><path d="M6 38h32M10 38V16l12-8 12 8v22M16 38V24h12v14"/></svg></div>
+        <h4>Architects</h4>
+        <p>Layout, elevation &amp; interior planning matched to your budget class.</p>
+      </div>
+      <div class="team-card tilt">
+        <div class="team-icon"><svg viewBox="0 0 44 44"><circle cx="22" cy="12" r="6"/><path d="M10 38v-6c0-6 5-10 12-10s12 4 12 10v6"/><path d="M14 22l-4-4M30 22l4-4"/></svg></div>
+        <h4>Civil Engineers</h4>
+        <p>Structural checks and on-site supervision through every stage of the build.</p>
+      </div>
+      <div class="team-card tilt">
+        <div class="team-icon"><svg viewBox="0 0 44 44"><rect x="8" y="18" width="28" height="16" rx="1"/><path d="M14 18v-4h16v4M20 34v4h4v-4"/></svg></div>
+        <h4>Labour &amp; Mason Teams</h4>
+        <p>Trained, in-house manpower — no outsourced or unverified crews.</p>
+      </div>
+      <div class="team-card tilt">
+        <div class="team-icon"><svg viewBox="0 0 44 44"><path d="M22 6l4 8 9 1-6.5 6.5L30 30l-8-4-8 4 1.5-8.5L8 15l9-1 5-8z"/></svg></div>
+        <h4>Quality &amp; Testing</h4>
+        <p>Every material batch checked and labelled before it reaches your site.</p>
+      </div>
+      <div class="team-card tilt">
+        <div class="team-icon"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="15"/><path d="M22 14v8l6 4"/></svg></div>
+        <h4>Retailer Verification Desk</h4>
+        <p>Checks every marketplace retailer's stock and rates before their listing goes live — sponsored or not.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CONTACT ================= -->
+<div class="jali-divider" style="background-image:radial-gradient(circle at 12px -7px, transparent 13px, var(--white) 13.5px, var(--white) 14.5px, transparent 15px);"></div>
+<section class="contact" id="contact">
+  <div class="blueprint-bg dark"></div>
+  <div class="light-field">
+    <div class="glow-orb gold" style="top:-160px;right:-100px;left:auto;"></div>
+    <div class="glow-orb brick" style="bottom:-140px;left:-100px;right:auto;"></div>
+    <div class="scan-line" style="animation-delay:2s;"></div>
+  </div>
+  <div class="wrap" style="position:relative;z-index:2;">
+    <div class="contact-grid">
+      <div class="reveal">
+        <span class="tag-label mono">Start the file</span>
+        <h2>Let's Meet<br>On Site.</h2>
+        <p class="lead">One call gets you a site visit, a budget conversation, and a straight answer on what your dream home will actually cost — in premium or budget class.</p>
+        <div class="contact-actions">
+          <a href="tel:+910000000000" class="btn-primary">Call Now →</a>
+          <a href="#" class="btn-secondary">Send Enquiry</a>
+        </div>
+      </div>
+      <div class="contact-info reveal">
+        <div class="row">
+          <span class="label mono">Phone</span>
+          <span class="val">+91 00000 00000</span>
+        </div>
+        <div class="row">
+          <span class="label mono">Service Area</span>
+          <span class="val">Site visits across your city &amp; nearby quarry regions</span>
+        </div>
+        <div class="row">
+          <span class="label mono">Material Sourcing</span>
+          <span class="val">Tosham · Narnaul · Dadri · Atella</span>
+        </div>
+        <div class="row">
+          <span class="label mono">Hours</span>
+          <span class="val">Mon–Sat, 9:00 AM – 7:00 PM</span>
+        </div>
+      </div>
+    </div>
+    <footer>
+      <span class="mono">© 2026 PRINCE BUILDERS — MATERIAL · BUILD · MANPOWER</span>
+      <span class="mono">DWG-001 / FROM BLUEPRINT TO BUILT</span>
+    </footer>
+  </div>
+</section>
+
+<div class="calc-modal-overlay" id="calcModal">
+<div id="calcApp">
+<header class="topbar">
+  <div class="brand">PRINCE<span class="dot">.</span>BUILDERS <span class="mono" style="font-size:10px;color:#9a9486;text-transform:none;font-weight:400;margin-left:6px;">/ control panel</span></div>
+  <div class="mode-switch">
+    <button id="btnBuyer" class="active">Buyer</button>
+    <button id="btnDev">Developer</button>
+  </div>
+  <button class="calc-close" id="calcCloseBtn" aria-label="Close calculator">✕</button>
+</header>
+
+<main id="app">
+  <section id="buyerView" class="view active">
+    <div class="loading-screen">Loading live rates…</div>
+  </section>
+  <section id="devView" class="view">
+    <div class="loading-screen">Loading live rates…</div>
+  </section>
+</main>
+<div id="toast"></div>
+</div>
+</div>
+
+<script>
+  // Mobile menu
+  const burger = document.getElementById('burgerBtn');
+  const mobileMenu = document.getElementById('mobileMenu');
+  const mobileClose = document.getElementById('mobileClose');
+  burger.addEventListener('click', () => mobileMenu.classList.add('open'));
+  mobileClose.addEventListener('click', () => mobileMenu.classList.remove('open'));
+  mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => mobileMenu.classList.remove('open')));
+
+  // Path switch: full-service vs retailer marketplace
+  function setMode(mode){
+    document.body.setAttribute('data-mode', mode);
+    const target = document.getElementById(mode === 'marketplace' ? 'retailers' : 'pillars');
+    if(target){
+      setTimeout(() => target.scrollIntoView({ behavior:'smooth', block:'start' }), 60);
+    }
+    document.querySelectorAll('.reveal:not(.in), .reveal-stagger:not(.in)').forEach(el => {
+      if(el.offsetParent !== null) observer.observe(el);
+    });
+  }
+
+  // Material tabs
+  const tabs = document.querySelectorAll('.mat-tab');
+  const panels = document.querySelectorAll('.mat-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      panels.forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // 3D pointer-tilt for cards
+  const tiltEls = document.querySelectorAll('.tilt');
+  const isFinePointer = window.matchMedia('(pointer:fine)').matches;
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (isFinePointer && !prefersReducedMotion) {
+    tiltEls.forEach(el => {
+      const parent = el.closest('.tilt-parent') || el.parentElement;
+      const maxTilt = el.id === 'heroSvg' ? 10 : 7;
+      parent.addEventListener('mousemove', (e) => {
+        const rect = el.getBoundingClientRect();
+        const px = (e.clientX - rect.left) / rect.width;
+        const py = (e.clientY - rect.top) / rect.height;
+        if (px < -0.15 || px > 1.15 || py < -0.15 || py > 1.15) return;
+        const rotY = (px - 0.5) * maxTilt * 2;
+        const rotX = (0.5 - py) * maxTilt * 2;
+        el.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg) translateZ(6px)`;
+      });
+      parent.addEventListener('mouseleave', () => {
+        el.style.transform = 'rotateX(0deg) rotateY(0deg) translateZ(0px)';
+      });
+    });
+  }
+
+  // Gentle idle float for the hero house once built
+  const heroSvg = document.getElementById('heroSvg');
+  if (heroSvg && !prefersReducedMotion) {
+    let t = 0;
+    setTimeout(() => {
+      function idleFloat(){
+        t += 0.012;
+        const ry = Math.sin(t) * 4;
+        const rx = Math.cos(t * 0.8) * 2;
+        if (!heroSvg.matches(':hover')) {
+          heroSvg.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg) translateZ(0px)`;
+        }
+        requestAnimationFrame(idleFloat);
+      }
+      idleFloat();
+    }, 3800);
+  }
+
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.reveal, .reveal-stagger').forEach(el => observer.observe(el));
+</script>
+
+<script>
+(function(){
+  var ssOverlay = document.getElementById('ssOverlay');
+  var scenes = document.querySelectorAll('.ss-scene');
+  var railItems = document.querySelectorAll('#ssRail .r-item');
+  var headline = document.getElementById('ssHeadline');
+  var sub = document.getElementById('ssSub');
+
+  var STORY = [
+    { h:'Your Call Comes In', s:'One number, and the file opens.' },
+    { h:'We Visit Your Plot', s:'Architect and engineer, on site, in person.' },
+    { h:'Material Reaches Site', s:'Steel, brick, sand and stone — lab-checked, delivered.' },
+    { h:'Your Home Takes Shape', s:'Crew and crane, staged and supervised.' },
+    { h:'Best Rate. By The Best. For The Best.', s:'Your dream home, handed over.' }
+  ];
+
+  var ssIdleTimer = null;
+  var ssLoopTimer = null;
+  var ssOpen = false;
+
+  function ssSetStage(i){
+    scenes.forEach(function(sc){
+      sc.classList.toggle('active', Number(sc.dataset.scene) === i);
+    });
+    railItems.forEach(function(item, idx){
+      item.classList.toggle('active', idx === i);
+    });
+    headline.textContent = STORY[i].h;
+    sub.textContent = STORY[i].s;
+  }
+
+  function ssRunLoop(){
+    var i = 0;
+    ssSetStage(0);
+    clearInterval(ssLoopTimer);
+    ssLoopTimer = setInterval(function(){
+      i = (i + 1) % STORY.length;
+      ssSetStage(i);
+    }, 2400);
+  }
+
+  function ssIsBlocked(){
+    var calcModal = document.getElementById('calcModal');
+    return (calcModal && calcModal.classList.contains('open')) || mobileMenu.classList.contains('open');
+  }
+
+  function ssOpenOverlay(){
+    if(ssOpen || ssIsBlocked() || prefersReducedMotion) return;
+    ssOpen = true;
+    ssOverlay.classList.add('show');
+    ssRunLoop();
+  }
+
+  function ssCloseOverlay(){
+    if(!ssOpen) return;
+    ssOpen = false;
+    ssOverlay.classList.remove('show');
+    clearInterval(ssLoopTimer);
+    ssResetIdle();
+  }
+
+  function ssResetIdle(){
+    clearTimeout(ssIdleTimer);
+    ssIdleTimer = setTimeout(ssOpenOverlay, 15000);
+  }
+
+  ['mousemove','keydown','click','touchstart'].forEach(function(evt){
+    window.addEventListener(evt, function(){
+      if(ssOpen){ ssCloseOverlay(); }
+      else { ssResetIdle(); }
+    }, { passive:true });
+  });
+
+  window.addEventListener('scroll', function(){
+    if(ssOpen){ ssCloseOverlay(); }
+    else { ssResetIdle(); }
+  }, { passive:true });
+
+  ssResetIdle();
+})();
+</script>
+
+<script>
+
+/* ============================================================
+   DATA
+   ============================================================ */
+const DEFAULT_RATES = {
+  architecture: {
+    premium: { rate: 25, styles: [
+      {id:'as-p1', name:'Contemporary Minimal', tag:'Clean lines, large glass, flat roofline'},
+      {id:'as-p2', name:'Indo-Colonial Classic', tag:'Arched verandahs, columned facade'},
+      {id:'as-p3', name:'Modern Duplex', tag:'Double-height living, cantilevered balconies'}
+    ]},
+    budget: { rate: 12, styles: [
+      {id:'as-b1', name:'Compact Smart Layout', tag:'Space-efficient, natural cross-ventilation'},
+      {id:'as-b2', name:'Simple Elevation Home', tag:'Low-maintenance facade, quick to build'},
+      {id:'as-b3', name:'Vastu Classic', tag:'Traditional layout, vastu-aligned rooms'}
+    ]}
+  },
+  bricks: {
+    fireFurnace: [
+      {id:'brick-red', name:'Red Clay Brick', rate:8, unit:'unit', benefits:['Time-tested strength & thermal mass','Most budget-friendly option']},
+      {id:'brick-flyash', name:'Fly Ash Brick', rate:7, unit:'unit', benefits:['Eco-friendly, less breakage','Uniform size, less mortar use']}
+    ],
+    electricFurnace: [
+      {id:'brick-electric', name:'Electric Furnace Brick', rate:12, unit:'unit', benefits:['Seals the house from moisture','Needs less plaster to finish — smoother, tighter joints','A little pricier — built for expensive dreams']},
+      {id:'brick-aac', name:'AAC Block', rate:55, unit:'block', benefits:['Lightweight — less structural load','Superior heat & sound insulation']},
+      {id:'brick-wirecut', name:'Wire Cut Brick', rate:10, unit:'unit', benefits:['Sharp edges, precise laying','High compressive strength']}
+    ]
+  },
+  steel: {
+    premium: [
+      {id:'steel-jindal', name:'Jindal Panther', rate:68, unit:'kg', benefits:['High tensile strength & ductility','Superior earthquake resistance']},
+      {id:'steel-jsw', name:'JSW Neosteel', rate:67, unit:'kg', benefits:['Fine-grain low-carbon core','Excellent weldability']},
+      {id:'steel-tata', name:'Tata Tiscon', rate:70, unit:'kg', benefits:['Uniform elongation, high bendability','Rust & fire resistant coating']},
+      {id:'steel-sail', name:'SAIL TMT', rate:65, unit:'kg', benefits:['Govt-grade mill certification','High load-bearing capacity']}
+    ],
+    secondary: [
+      {id:'steel-kamdhenu', name:'Kamdhenu', rate:58, unit:'kg', benefits:['Cost-effective for low-rise builds','ISI-marked basic grade']},
+      {id:'steel-metro', name:'Metro Steel', rate:55, unit:'kg', benefits:['Reliable mid-budget option','Common for slab reinforcement']},
+      {id:'steel-shyam', name:'Shyam Steel', rate:54, unit:'kg', benefits:['Wide availability, quick delivery','Certified & batch-tested']}
+    ]
+  },
+  sand: [
+    {id:'sand-atella', name:'Atella Sand', rate:55, unit:'cft', benefits:['Silt-free, fine grade','Ideal for plastering & finishing']},
+    {id:'sand-tosham', name:'Tosham Sand', rate:50, unit:'cft', benefits:['High compressive strength in RCC','Low impurity content']},
+    {id:'sand-dadri', name:'Dadri Sand', rate:48, unit:'cft', benefits:['Balanced grain, general use','Consistent, batch tested']}
+  ],
+  stone: [
+    {id:'stone-20', name:'20mm Crusher Stone', rate:42, unit:'cft', benefits:['Standard for RCC concrete mix','Used in raw flooring beds']},
+    {id:'stone-40', name:'40mm Crusher Stone', rate:38, unit:'cft', benefits:['Used for soling & base layers','High load-bearing, low absorption']},
+    {id:'stone-60', name:'60mm Crusher Stone', rate:36, unit:'cft', benefits:['Deep foundation & soling work','Excellent compaction strength']}
+  ],
+  marble: [
+    {id:'marble-katni', name:'Katni Marble', rate:65, unit:'sqft', benefits:['Durable, low water absorption','Premium look at friendly cost']},
+    {id:'marble-granite', name:'Granite', rate:90, unit:'sqft', benefits:['Extremely hard, scratch resistant','Heat resistant — kitchens & counters']},
+    {id:'marble-wonder', name:'Wonder Marble', rate:75, unit:'sqft', benefits:['High gloss uniform finish','Cost-effective elegance']},
+    {id:'marble-italian', name:'Italian Marble', rate:350, unit:'sqft', benefits:['Unique natural veining','Signature premium-class finish']}
+  ],
+  construction: { premium: 950, budget: 650 },
+  manpower: { ratePerSqft: 120, masonDay: 800, labourDay: 500 },
+  consultation: { call: 0, video: 500, siteVisit: 1500 },
+  consumption: { steelKgPerSqft: 4, bricksPerSqft: 8, sandCftPerSqft: 1.2, stoneCftPerSqft: 1, marbleFactor: 0.85 }
+};
+
+const DEFAULT_PROJECTS = [
+  {id:'p1', title:'Sundar Residency', location:'Panipat, Haryana', area:2200, cls:'premium', tagline:'4BHK premium home, Italian marble flooring throughout.'},
+  {id:'p2', title:'Green Valley Home', location:'Sonipat, Haryana', area:1400, cls:'budget', tagline:'3BHK budget-smart build, certified secondary steel.'},
+  {id:'p3', title:'Raj Villa', location:'Karnal, Haryana', area:3100, cls:'premium', tagline:'Duplex villa, granite counters & wire-cut brickwork.'}
+];
+
+let RATES = null;
+let PROJECTS = null;
+const DEV_PIN = '1234';
+let devAuthed = false;
+let currentMode = 'buyer';
+
+/* ============================================================
+   SUPABASE CONFIG — fill these in once your project is created
+   Project Settings → API in your Supabase dashboard
+   ============================================================ */
+const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL_HERE';   // e.g. https://xxxxxxxx.supabase.co
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';
+
+let supabaseClient = null;
+function getClient(){
+  if(!supabaseClient){
+    if(!window.supabase || SUPABASE_URL.includes('YOUR_') || SUPABASE_ANON_KEY.includes('YOUR_')){
+      throw new Error('Supabase not configured yet');
+    }
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+  return supabaseClient;
+}
+
+/* ============================================================
+   STORAGE HELPERS (backed by Supabase kv_store table)
+   ============================================================ */
+async function kvGet(key){
+  const client = getClient();
+  const { data, error } = await client.from('kv_store').select('value').eq('key', key).maybeSingle();
+  if(error) throw error;
+  if(!data) throw new Error('not found');
+  return data.value;
+}
+async function kvSet(key, value){
+  const client = getClient();
+  const { error } = await client.from('kv_store').upsert({ key, value, updated_at: new Date().toISOString() });
+  if(error) throw error;
+  return true;
+}
+
+async function loadState(){
+  try{
+    RATES = await kvGet('pb-rates');
+  }catch(e){
+    RATES = JSON.parse(JSON.stringify(DEFAULT_RATES));
+    try{ await safeSet('pb-rates', RATES); }catch(e2){ /* Supabase not configured yet — running on local defaults only */ }
+  }
+  try{
+    PROJECTS = await kvGet('pb-projects');
+  }catch(e){
+    PROJECTS = JSON.parse(JSON.stringify(DEFAULT_PROJECTS));
+    try{ await safeSet('pb-projects', PROJECTS); }catch(e2){ /* Supabase not configured yet — running on local defaults only */ }
+  }
+  if(SUPABASE_URL.includes('YOUR_') || SUPABASE_ANON_KEY.includes('YOUR_')){
+    toast('⚠ Supabase not connected yet — changes won\'t be saved. Add your project URL and key in the code.');
+  }
+}
+async function safeSet(key, val){
+  try{
+    await kvSet(key, val);
+    return true;
+  }catch(e){
+    toast('⚠ Could not save — Supabase may not be configured yet, or check your connection.');
+    return false;
+  }
+}
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>t.classList.remove('show'), 2800);
+}
+function fmtINR(n){
+  if(isNaN(n)) n = 0;
+  return '₹' + Math.round(n).toLocaleString('en-IN');
+}
+function hashGradient(str){
+  let h = 0;
+  for(let i=0;i<str.length;i++) h = str.charCodeAt(i) + ((h<<5)-h);
+  const hue1 = Math.abs(h) % 360;
+  const hue2 = (hue1 + 40) % 360;
+  return `linear-gradient(135deg, hsl(${hue1},32%,68%), hsl(${hue2},38%,42%))`;
+}
+
+/* ============================================================
+   MODE SWITCH
+   ============================================================ */
+document.getElementById('btnBuyer').addEventListener('click', ()=>switchMode('buyer'));
+document.getElementById('btnDev').addEventListener('click', ()=>switchMode('dev'));
+function switchMode(mode){
+  currentMode = mode;
+  document.getElementById('btnBuyer').classList.toggle('active', mode==='buyer');
+  document.getElementById('btnDev').classList.toggle('active', mode==='dev');
+  document.getElementById('buyerView').classList.toggle('active', mode==='buyer');
+  document.getElementById('devView').classList.toggle('active', mode==='dev');
+  if(mode==='buyer') renderBuyer();
+  else renderDev();
+}
+
+/* ============================================================
+   BUYER WIZARD STATE
+   ============================================================ */
+const STEPS = [
+  {key:'plot', label:'Plot Details'},
+  {key:'architecture', label:'Architecture'},
+  {key:'bricks', label:'Bricks'},
+  {key:'steel', label:'Steel'},
+  {key:'sand', label:'Sand'},
+  {key:'stone', label:'Stone'},
+  {key:'marble', label:'Marble'},
+  {key:'team', label:'Meet The Team'},
+  {key:'manpower', label:'Manpower'},
+  {key:'summary', label:'Estimate'}
+];
+let stepIdx = 0;
+let maxReached = 0;
+let sel = { area:null, city:'', budgetClass:null, archStyleId:null, brickTier:'fireFurnace', brickId:null, steelTier:'premium', steelId:null, sandId:null, stoneId:null, marbleId:null, consultation:'call' };
+
+function calcCosts(){
+  if(!sel.area || !sel.budgetClass) return null;
+  const a = sel.area;
+  const c = RATES.consumption;
+  const baseCost = RATES.construction[sel.budgetClass] * a;
+  const architectureFee = RATES.architecture[sel.budgetClass].rate * a;
+  const brickList = RATES.bricks[sel.brickTier] || [];
+  const brick = brickList.find(b=>b.id===sel.brickId);
+  const brickCost = brick ? brick.rate * c.bricksPerSqft * a : 0;
+  const steelList = RATES.steel[sel.steelTier] || [];
+  const steel = steelList.find(s=>s.id===sel.steelId);
+  const steelCost = steel ? steel.rate * c.steelKgPerSqft * a : 0;
+  const sand = RATES.sand.find(s=>s.id===sel.sandId);
+  const sandCost = sand ? sand.rate * c.sandCftPerSqft * a : 0;
+  const stone = RATES.stone.find(s=>s.id===sel.stoneId);
+  const stoneCost = stone ? stone.rate * c.stoneCftPerSqft * a : 0;
+  const marble = RATES.marble.find(m=>m.id===sel.marbleId);
+  const marbleCost = marble ? marble.rate * c.marbleFactor * a : 0;
+  const manpowerCost = RATES.manpower.ratePerSqft * a;
+  const consultFee = RATES.consultation[sel.consultation] || 0;
+  const total = baseCost+architectureFee+brickCost+steelCost+sandCost+stoneCost+marbleCost+manpowerCost+consultFee;
+  return {baseCost,architectureFee,brickCost,steelCost,sandCost,stoneCost,marbleCost,manpowerCost,consultFee,total,
+          brick, steel, sand, stone, marble};
+}
+
+function goStep(i){
+  if(i > maxReached) return;
+  stepIdx = i;
+  renderBuyer();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function nextStep(){
+  if(stepIdx < STEPS.length-1){
+    stepIdx++;
+    if(stepIdx > maxReached) maxReached = stepIdx;
+    renderBuyer();
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+}
+function prevStep(){
+  if(stepIdx>0){ stepIdx--; renderBuyer(); window.scrollTo({top:0, behavior:'smooth'}); }
+}
+function canProceed(){
+  const key = STEPS[stepIdx].key;
+  if(key==='plot') return sel.area>0;
+  if(key==='architecture') return !!sel.budgetClass;
+  if(key==='bricks') return !!sel.brickId;
+  if(key==='steel') return !!sel.steelId;
+  if(key==='sand') return !!sel.sandId;
+  if(key==='stone') return !!sel.stoneId;
+  if(key==='marble') return !!sel.marbleId;
+  return true;
+}
+
+/* ============================================================
+   BUYER RENDER
+   ============================================================ */
+function renderBuyer(){
+  const root = document.getElementById('buyerView');
+  const progress = STEPS.map((s,i)=>{
+    let cls = 'progress-step';
+    if(i===stepIdx) cls+=' current';
+    else if(i<=maxReached) cls+=' done';
+    else cls+=' locked';
+    return `<div class="${cls}" onclick="goStep(${i})">
+      <div class="num mono">${String(i+1).padStart(2,'0')}</div>
+      <div class="lbl">${s.label}</div>
+    </div>`;
+  }).join('');
+
+  root.innerHTML = `
+    <div class="buyer-shell">
+      <div class="buyer-head">
+        <span class="tag">Dream Home Calculator</span>
+        <h1>Build It Your Way — See The Cost As You Go</h1>
+      </div>
+      <div class="progress-rail">${progress}</div>
+      <div class="buyer-body">
+        <div class="step-card">${stepContent(STEPS[stepIdx].key)}
+          <div class="step-actions">
+            <button class="btn ghost" onclick="prevStep()" ${stepIdx===0?'disabled':''}>← Back</button>
+            ${STEPS[stepIdx].key==='summary'
+              ? `<button class="btn primary" onclick="restartWizard()">Restart Calculator</button>`
+              : `<button class="btn primary" id="nextBtn" onclick="nextStep()">Continue →</button>`}
+          </div>
+        </div>
+        ${estimateSidebar()}
+      </div>
+    </div>
+  `;
+  const nb = document.getElementById('nextBtn');
+  if(nb) nb.disabled = !canProceed();
+}
+
+function estimateSidebar(){
+  const c = calcCosts();
+  const key = STEPS[stepIdx].key;
+  if(!c){
+    return `<div class="estimate-card">
+      <span class="tag">Live Estimate</span>
+      <h3>Your running total</h3>
+      <p class="est-empty">Enter your plot area and budget class to start seeing your dream home's cost build up in real time.</p>
+    </div>`;
+  }
+  const rows = [
+    ['Architecture &amp; Design', c.architectureFee],
+    ['Base construction', c.baseCost],
+    ['Bricks', c.brickCost],
+    ['Steel', c.steelCost],
+    ['Sand', c.sandCost],
+    ['Stone', c.stoneCost],
+    ['Marble', c.marbleCost],
+    ['Manpower', c.manpowerCost],
+    ['Consultation', c.consultFee],
+  ].filter(r=>r[1]>0 || r[0]==='Base construction');
+  return `<div class="estimate-card">
+    <span class="tag">${key==='summary'?'Final Estimate':'Live Estimate'}</span>
+    <h3>${sel.area} sqft · ${sel.budgetClass==='premium'?'Premium Class':'Budget Class'}</h3>
+    ${rows.map(r=>`<div class="est-row"><span>${r[0]}</span><span class="v">${fmtINR(r[1])}</span></div>`).join('')}
+    <div class="est-row total"><span>Total</span><span class="v">${fmtINR(c.total)}</span></div>
+  </div>`;
+}
+
+function stepContent(key){
+  if(key==='plot') return stepPlot();
+  if(key==='architecture') return stepArchitecture();
+  if(key==='bricks') return stepBricks();
+  if(key==='steel') return stepSteel();
+  if(key==='sand') return stepMaterial('sand', 'sandId', RATES.sand, 'Choose Your Sand', 'Sand binds your concrete and plaster — sourced straight from the quarry.');
+  if(key==='stone') return stepMaterial('stone', 'stoneId', RATES.stone, 'Choose Your Crusher Stone', 'Used in your foundation, RCC mix and flooring base.');
+  if(key==='marble') return stepMaterial('marble', 'marbleId', RATES.marble, 'Choose Your Marble / Flooring', 'The finish that defines how your home feels underfoot.');
+  if(key==='team') return stepTeam();
+  if(key==='manpower') return stepManpower();
+  if(key==='summary') return stepSummary();
+}
+
+function stepPlot(){
+  return `
+    <h2>Tell Us About Your Plot</h2>
+    <p class="hint">This sets the base for every calculation ahead — you can always come back and change it.</p>
+    <div class="field-row">
+      <div class="field">
+        <label>Built-Up Area (sqft)</label>
+        <input type="number" min="100" placeholder="e.g. 1800" value="${sel.area||''}" oninput="sel.area=parseFloat(this.value)||null; refreshLive();">
+      </div>
+      <div class="field">
+        <label>City / Location</label>
+        <input type="text" placeholder="e.g. Panipat, Haryana" value="${sel.city||''}" oninput="sel.city=this.value;">
+      </div>
+    </div>
+  `;
+}
+
+function stepArchitecture(){
+  const premiumStyles = RATES.architecture.premium.styles;
+  const budgetStyles = RATES.architecture.budget.styles;
+  const activeStyles = sel.budgetClass ? RATES.architecture[sel.budgetClass].styles : [];
+  return `
+    <h2>What Kind Of Home Are You Building?</h2>
+    <p class="hint">Pick a class first — we'll show you the architecture rate and trending designs that match it.</p>
+    <div class="budget-cards" style="margin-bottom:26px;">
+      <div class="choice-card ${sel.budgetClass==='premium'?'selected':''}" onclick="sel.budgetClass='premium'; refreshLive();">
+        <div class="cc-title">High-End Premium</div>
+        <div class="cc-sub mono">Design fee: ${fmtINR(RATES.architecture.premium.rate)}/sqft</div>
+        <ul><li>Custom architect-led design</li><li>Futuristic, high-illustration layouts</li></ul>
+      </div>
+      <div class="choice-card ${sel.budgetClass==='budget'?'selected':''}" onclick="sel.budgetClass='budget'; refreshLive();">
+        <div class="cc-title">Budget-Friendly</div>
+        <div class="cc-sub mono">Design fee: ${fmtINR(RATES.architecture.budget.rate)}/sqft</div>
+        <ul><li>Efficient, ready-to-adapt layouts</li><li>Same certified quality checks</li></ul>
+      </div>
+    </div>
+    ${sel.budgetClass ? `
+      <label style="display:block;font-family:'IBM Plex Mono';font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">
+        Trending ${sel.budgetClass==='premium'?'Premium':'Budget'} Architecture — pick a look you like (optional)
+      </label>
+      <div class="choice-grid">
+        ${activeStyles.map(s=>`
+          <div class="choice-card ${sel.archStyleId===s.id?'selected':''}" onclick="sel.archStyleId='${s.id}'; refreshLive();">
+            <div class="mat-swatch" style="background:${hashGradient(s.name)}"></div>
+            <div class="cc-title">${s.name}</div>
+            <ul><li>${s.tag}</li></ul>
+          </div>`).join('')}
+      </div>
+    ` : `<p class="hint">Choose a class above to see trending designs at that price point.</p>`}
+  `;
+}
+
+function stepBricks(){
+  const list = RATES.bricks[sel.brickTier] || [];
+  const cards = list.map(item=>`
+    <div class="choice-card ${sel.brickId===item.id?'selected':''}" onclick="sel.brickId='${item.id}'; refreshLive();">
+      <div class="mat-swatch" style="background:${hashGradient(item.name)}"></div>
+      <div class="cc-title">${item.name}</div>
+      <div class="cc-sub mono">per ${item.unit}</div>
+      <div class="cc-rate">${fmtINR(item.rate)} / ${item.unit}</div>
+      <ul>${(item.benefits||[]).map(b=>`<li>${b}</li>`).join('')}</ul>
+    </div>`).join('');
+  return `
+    <h2>Choose Your Brick</h2>
+    <p class="hint">Fire furnace bricks are the traditional, budget-friendly choice. Electric furnace bricks seal your home from moisture and need less plaster to finish — a little pricier, built for expensive dreams.</p>
+    <div class="tier-toggle">
+      <button class="${sel.brickTier==='fireFurnace'?'active':''}" onclick="sel.brickTier='fireFurnace'; sel.brickId=null; renderBuyer();">Normal Fire Furnace</button>
+      <button class="${sel.brickTier==='electricFurnace'?'active':''}" onclick="sel.brickTier='electricFurnace'; sel.brickId=null; renderBuyer();">Electric Furnace</button>
+    </div>
+    <div class="choice-grid">${cards}</div>
+  `;
+}
+
+function stepMaterial(catName, selField, list, title, hint){
+  const cards = list.map(item=>`
+    <div class="choice-card ${sel[selField]===item.id?'selected':''}" onclick="sel.${selField}='${item.id}'; refreshLive();">
+      <div class="mat-swatch" style="background:${hashGradient(item.name)}"></div>
+      <div class="cc-title">${item.name}</div>
+      <div class="cc-sub mono">${item.tier?item.tier+' · ':''}per ${item.unit}</div>
+      <div class="cc-rate">${fmtINR(item.rate)} / ${item.unit}</div>
+      <ul>${(item.benefits||[]).map(b=>`<li>${b}</li>`).join('')}</ul>
+    </div>`).join('');
+  return `<h2>${title}</h2><p class="hint">${hint}</p><div class="choice-grid">${cards}</div>`;
+}
+
+function stepSteel(){
+  const list = RATES.steel[sel.steelTier] || [];
+  const cards = list.map(item=>`
+    <div class="choice-card ${sel.steelId===item.id?'selected':''}" onclick="sel.steelId='${item.id}'; refreshLive();">
+      <div class="mat-swatch" style="background:${hashGradient(item.name)}"></div>
+      <div class="cc-title">${item.name}</div>
+      <div class="cc-sub mono">TMT · per ${item.unit}</div>
+      <div class="cc-rate">${fmtINR(item.rate)} / ${item.unit}</div>
+      <ul>${(item.benefits||[]).map(b=>`<li>${b}</li>`).join('')}</ul>
+    </div>`).join('');
+  return `
+    <h2>Choose Your Steel</h2>
+    <p class="hint">Reinforcement steel is what gives your structure its strength. Premium brands cost more but offer higher tensile grade and certification.</p>
+    <div class="tier-toggle">
+      <button class="${sel.steelTier==='premium'?'active':''}" onclick="sel.steelTier='premium'; sel.steelId=null; renderBuyer();">Premium Brands</button>
+      <button class="${sel.steelTier==='secondary'?'active':''}" onclick="sel.steelTier='secondary'; sel.steelId=null; renderBuyer();">Secondary Brands</button>
+    </div>
+    <div class="choice-grid">${cards}</div>
+  `;
+}
+
+function stepTeam(){
+  const projCards = (PROJECTS||[]).map(p=>`
+    <div class="proj-card">
+      <div class="proj-banner" style="background:${hashGradient(p.title)}"></div>
+      <div class="proj-body">
+        <div class="pclass">${p.cls==='premium'?'Premium Class':'Budget Class'}</div>
+        <h4>${p.title}</h4>
+        <div class="ploc">${p.location} · ${p.area} sqft</div>
+        <div class="ptag">${p.tagline}</div>
+      </div>
+    </div>`).join('');
+
+  const options = [
+    {key:'call', label:'Phone Call', desc:'Quick discussion with our architect about your requirement.'},
+    {key:'video', label:'Video Call', desc:'Screen-share layout options and material samples live.'},
+    {key:'siteVisit', label:'Site Visit', desc:'Our architect & civil engineer visit your plot in person.'}
+  ];
+  const consultCards = options.map(o=>`
+    <div class="choice-card ${sel.consultation===o.key?'selected':''}" onclick="sel.consultation='${o.key}'; refreshLive();">
+      <div class="cc-title">${o.label}</div>
+      <div class="cc-rate">${RATES.consultation[o.key]>0?fmtINR(RATES.consultation[o.key]):'Free'}</div>
+      <ul><li>${o.desc}</li></ul>
+    </div>`).join('');
+
+  return `
+    <h2>Meet Our Architects &amp; Civil Engineers</h2>
+    <p class="hint">Have a look at homes we've already built, then choose how you'd like to connect with our team.</p>
+    <div class="gallery-grid">${projCards}</div>
+    <label style="display:block;font-family:'IBM Plex Mono';font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Book A Consultation</label>
+    <div class="consult-grid">${consultCards}</div>
+  `;
+}
+
+function stepManpower(){
+  const m = RATES.manpower;
+  const cost = sel.area ? m.ratePerSqft*sel.area : 0;
+  return `
+    <h2>Manpower — Included In Your Build</h2>
+    <p class="hint">Our skilled mason and labour teams are automatically part of your estimate — no separate hiring needed.</p>
+    <div class="choice-grid">
+      <div class="choice-card selected" style="cursor:default;">
+        <div class="cc-title">Site Labour Rate</div>
+        <div class="cc-rate">${fmtINR(m.ratePerSqft)} / sqft</div>
+        <ul><li>Covers mason + helper teams for your full build</li><li>Applied automatically across your ${sel.area||'—'} sqft plot</li></ul>
+      </div>
+      <div class="choice-card" style="cursor:default;">
+        <div class="cc-title">Reference Day Rates</div>
+        <div class="cc-sub mono">for context, not billed separately</div>
+        <ul><li>Mason: ${fmtINR(m.masonDay)} / day</li><li>Labour / Helper: ${fmtINR(m.labourDay)} / day</li></ul>
+      </div>
+    </div>
+    <div class="ai-box" style="margin-top:20px;">
+      <h4>Manpower cost for your plot</h4>
+      <p>${sel.area ? `${sel.area} sqft × ${fmtINR(m.ratePerSqft)}/sqft = ${fmtINR(cost)}` : 'Enter your plot area on step 1 to see this calculated.'}</p>
+    </div>
+  `;
+}
+
+function stepSummary(){
+  const c = calcCosts();
+  if(!c) return `<h2>Your Estimate</h2><p class="hint">Complete the earlier steps to see your full breakdown.</p>`;
+  const rows = [
+    ['Architecture & Design', `${sel.budgetClass==='premium'?'High-End':'Budget-Friendly'} · ${fmtINR(RATES.architecture[sel.budgetClass].rate)}/sqft`, c.architectureFee],
+    ['Base Construction', `${sel.budgetClass==='premium'?'Premium':'Budget'} · ${fmtINR(RATES.construction[sel.budgetClass])}/sqft`, c.baseCost],
+    ['Bricks', c.brick?.name||'—', c.brickCost],
+    ['Steel', c.steel?.name||'—', c.steelCost],
+    ['Sand', c.sand?.name||'—', c.sandCost],
+    ['Crusher Stone', c.stone?.name||'—', c.stoneCost],
+    ['Marble / Flooring', c.marble?.name||'—', c.marbleCost],
+    ['Manpower', `${fmtINR(RATES.manpower.ratePerSqft)}/sqft`, c.manpowerCost],
+    ['Consultation', sel.consultation, c.consultFee],
+  ];
+  return `
+    <h2>Your Dream Home Estimate</h2>
+    <p class="hint">Here's the full breakdown for your ${sel.area} sqft ${sel.budgetClass==='premium'?'premium':'budget'} home in ${sel.city||'your city'}.</p>
+    <table class="summary-table">
+      <thead><tr><th>Category</th><th>Selection</th><th style="text-align:right;">Amount</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td class="mono" style="color:var(--muted);font-size:12px;">${r[1]}</td><td class="amt">${fmtINR(r[2])}</td></tr>`).join('')}</tbody>
+    </table>
+    <div class="summary-total">
+      <span class="lbl">Estimated Total</span>
+      <span class="val">${fmtINR(c.total)}</span>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px;">
+      <button class="btn primary" onclick="getAIRecommendation()">✨ Get AI Recommendation</button>
+      <a class="btn ghost" style="text-decoration:none;display:inline-flex;align-items:center;" href="mailto:?subject=My Prince Builders Estimate&body=${encodeURIComponent(buildMailBody(c))}">Email This Estimate</a>
+    </div>
+    <div id="aiResult"></div>
+  `;
+}
+
+function buildMailBody(c){
+  return `Plot: ${sel.area} sqft in ${sel.city||'—'}\nClass: ${sel.budgetClass}\nArchitecture fee: ${fmtINR(c.architectureFee)}\nBricks: ${c.brick?.name}\nSteel: ${c.steel?.name}\nSand: ${c.sand?.name}\nStone: ${c.stone?.name}\nMarble: ${c.marble?.name}\nConsultation: ${sel.consultation}\n\nEstimated Total: ${fmtINR(c.total)}`;
+}
+
+async function getAIRecommendation(){
+  const box = document.getElementById('aiResult');
+  box.innerHTML = `<div class="ai-box"><p class="ai-loading">Thinking through your selections…</p></div>`;
+  const c = calcCosts();
+  const prompt = `A home-buyer is planning a ${sel.budgetClass} class house of ${sel.area} sqft in ${sel.city||'India'}.
+They chose: architecture style=${(RATES.architecture[sel.budgetClass].styles.find(s=>s.id===sel.archStyleId)||{}).name||'not picked'}, bricks=${c.brick?.name}, steel=${c.steel?.name}, sand=${c.sand?.name}, stone=${c.stone?.name}, marble=${c.marble?.name}, consultation=${sel.consultation}.
+Estimated total cost: ₹${Math.round(c.total)}.
+In under 90 words, give a friendly, practical 3-4 point takeaway: whether the material mix is well-balanced for their budget class, one thing worth reconsidering, and one encouraging closing line. Plain text, no markdown headers.`;
+  try{
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        model:"claude-sonnet-4-6",
+        max_tokens:300,
+        messages:[{role:"user", content:prompt}]
+      })
+    });
+    const data = await response.json();
+    const text = (data.content||[]).map(b=>b.text||'').join('\n').trim();
+    box.innerHTML = `<div class="ai-box"><h4>AI Recommendation</h4><p>${text || 'No response received — please try again.'}</p></div>`;
+  }catch(e){
+    box.innerHTML = `<div class="ai-box"><h4>AI Recommendation</h4><p>Couldn't reach the AI advisor right now. Your calculated estimate above is unaffected — try again in a moment.</p></div>`;
+  }
+}
+
+function refreshLive(){ renderBuyer(); }
+function restartWizard(){
+  stepIdx=0; maxReached=0;
+  sel = { area:null, city:'', budgetClass:null, archStyleId:null, brickTier:'fireFurnace', brickId:null, steelTier:'premium', steelId:null, sandId:null, stoneId:null, marbleId:null, consultation:'call' };
+  renderBuyer();
+}
+
+/* ============================================================
+   DEVELOPER INTERFACE
+   ============================================================ */
+let devTab = 'rates';
+function renderDev(){
+  const root = document.getElementById('devView');
+  if(!devAuthed){
+    root.innerHTML = `
+      <div class="dev-shell">
+        <div class="dev-login">
+          <h2>Developer Access</h2>
+          <p>Enter the panel PIN to update live material, construction and manpower rates.</p>
+          <input type="text" maxlength="6" id="pinInput" placeholder="••••" inputmode="numeric">
+          <button class="btn primary" style="width:100%;" onclick="tryDevLogin()">Enter Panel</button>
+          <p class="dev-note">Demo PIN: <span class="mono">1234</span>. This is a front-end UI gate for demo purposes only — not secure authentication. Wire this up to real login before going live.</p>
+        </div>
+      </div>`;
+    return;
+  }
+  root.innerHTML = `
+    <div class="dev-shell">
+      <div class="buyer-head">
+        <span class="tag">Rate &amp; Content Control</span>
+        <h1>Update What Buyers See — Live</h1>
+      </div>
+      <div class="dev-tabs">
+        <button class="dev-tab ${devTab==='rates'?'active':''}" onclick="devTab='rates'; renderDev();">Material &amp; Cost Rates</button>
+        <button class="dev-tab ${devTab==='projects'?'active':''}" onclick="devTab='projects'; renderDev();">Completed Projects</button>
+      </div>
+      <div class="dev-panel active">${devTab==='rates' ? devRatesPanel() : devProjectsPanel()}</div>
+    </div>`;
+}
+
+function tryDevLogin(){
+  const val = document.getElementById('pinInput').value;
+  if(val === DEV_PIN){ devAuthed = true; renderDev(); toast('Welcome back — panel unlocked.'); }
+  else toast('Incorrect PIN — try again.');
+}
+
+function materialTableRows(list, cat){
+  return list.map((item,idx)=>`
+    <tr>
+      <td>${item.name}${item.tier?` <span class="mono" style="color:var(--muted);font-size:10.5px;">(${item.tier})</span>`:''}</td>
+      <td class="mono" style="color:var(--muted);">${item.unit}</td>
+      <td><input type="number" data-cat="${cat}" data-idx="${idx}" value="${item.rate}" step="0.5"></td>
+      <td><button class="del-btn" onclick="deleteItem('${cat}',${idx})" title="Remove">✕</button></td>
+    </tr>`).join('');
+}
+
+function devRatesPanel(){
+  return `
+    <div class="dev-section">
+      <h3>Architecture &amp; Design Fee</h3>
+      <div class="sub">Per-sqft design fee charged for each class — shown to buyers before they pick materials.</div>
+      <div class="two-col">
+        <div class="field"><label>High-End Premium (₹/sqft)</label><input type="number" id="rate-arch-premium" value="${RATES.architecture.premium.rate}"></div>
+        <div class="field"><label>Budget-Friendly (₹/sqft)</label><input type="number" id="rate-arch-budget" value="${RATES.architecture.budget.rate}"></div>
+      </div>
+    </div>
+
+    <div class="dev-section">
+      <h3>Bricks — Normal Fire Furnace</h3>
+      <div class="sub">Traditional kiln-fired bricks, the budget-friendly default.</div>
+      <table class="rate-table"><thead><tr><th>Type</th><th>Unit</th><th>Rate (₹)</th><th></th></tr></thead>
+      <tbody>${materialTableRows(RATES.bricks.fireFurnace,'bricks-fireFurnace')}</tbody></table>
+      <div class="add-row">
+        <input type="text" id="new-bricks-fireFurnace-name" placeholder="New fire furnace brick">
+        <input type="number" id="new-bricks-fireFurnace-rate" placeholder="Rate ₹" style="width:90px;">
+        <button onclick="addItem('bricks-fireFurnace')">+ Add Brick Type</button>
+      </div>
+    </div>
+
+    <div class="dev-section">
+      <h3>Bricks — Electric Furnace</h3>
+      <div class="sub">Seals the house from moisture and needs less plaster — pricier, premium-leaning option.</div>
+      <table class="rate-table"><thead><tr><th>Type</th><th>Unit</th><th>Rate (₹)</th><th></th></tr></thead>
+      <tbody>${materialTableRows(RATES.bricks.electricFurnace,'bricks-electricFurnace')}</tbody></table>
+      <div class="add-row">
+        <input type="text" id="new-bricks-electricFurnace-name" placeholder="New electric furnace brick">
+        <input type="number" id="new-bricks-electricFurnace-rate" placeholder="Rate ₹" style="width:90px;">
+        <button onclick="addItem('bricks-electricFurnace')">+ Add Brick Type</button>
+      </div>
+    </div>
+
+    <div class="dev-section">
+      <h3>Steel — Premium Brands</h3>
+      <div class="sub">Rate per kg.</div>
+      <table class="rate-table"><thead><tr><th>Brand</th><th>Unit</th><th>Rate (₹)</th><th></th></tr></thead>
+      <tbody>${materialTableRows(RATES.steel.premium,'steel-premium')}</tbody></table>
+      <div class="add-row">
+        <input type="text" id="new-steel-premium-name" placeholder="New premium brand">
+        <input type="number" id="new-steel-premium-rate" placeholder="Rate ₹/kg" style="width:110px;">
+        <button onclick="addItem('steel-premium')">+ Add Brand</button>
+      </div>
+    </div>
+
+    <div class="dev-section">
+      <h3>Steel — Secondary Brands</h3>
+      <table class="rate-table"><thead><tr><th>Brand</th><th>Unit</th><th>Rate (₹)</th><th></th></tr></thead>
+      <tbody>${materialTableRows(RATES.steel.secondary,'steel-secondary')}</tbody></table>
+      <div class="add-row">
+        <input type="text" id="new-steel-secondary-name" placeholder="New secondary brand">
+        <input type="number" id="new-steel-secondary-rate" placeholder="Rate ₹/kg" style="width:110px;">
+        <button onclick="addItem('steel-secondary')">+ Add Brand</button>
+      </div>
+    </div>
+
+    <div class="dev-section">
+      <h3>Sand</h3>
+      <table class="rate-table"><thead><tr><th>Source</th><th>Unit</th><th>Rate (₹)</th><th></th></tr></thead>
+      <tbody>${materialTableRows(RATES.sand,'sand')}</tbody></table>
+      <div class="add-row">
+        <input type="text" id="new-sand-name" placeholder="New sand source">
+        <input type="number" id="new-sand-rate" placeholder="Rate ₹/cft" style="width:110px;">
+        <button onclick="addItem('sand')">+ Add Source</button>
+      </div>
+    </div>
+
+    <div class="dev-section">
+      <h3>Crusher Stone</h3>
+      <table class="rate-table"><thead><tr><th>Grade</th><th>Unit</th><th>Rate (₹)</th><th></th></tr></thead>
+      <tbody>${materialTableRows(RATES.stone,'stone')}</tbody></table>
+      <div class="add-row">
+        <input type="text" id="new-stone-name" placeholder="New stone grade">
+        <input type="number" id="new-stone-rate" placeholder="Rate ₹/cft" style="width:110px;">
+        <button onclick="addItem('stone')">+ Add Grade</button>
+      </div>
+    </div>
+
+    <div class="dev-section">
+      <h3>Marble &amp; Flooring</h3>
+      <table class="rate-table"><thead><tr><th>Type</th><th>Unit</th><th>Rate (₹)</th><th></th></tr></thead>
+      <tbody>${materialTableRows(RATES.marble,'marble')}</tbody></table>
+      <div class="add-row">
+        <input type="text" id="new-marble-name" placeholder="New marble/stone type">
+        <input type="number" id="new-marble-rate" placeholder="Rate ₹/sqft" style="width:110px;">
+        <button onclick="addItem('marble')">+ Add Type</button>
+      </div>
+    </div>
+
+    <div class="dev-section">
+      <h3>Base Construction Rate</h3>
+      <div class="sub">Covers cement, structure &amp; finishing, per sqft — excludes the material picks above.</div>
+      <div class="two-col">
+        <div class="field"><label>Premium Class (₹/sqft)</label><input type="number" id="rate-construction-premium" value="${RATES.construction.premium}"></div>
+        <div class="field"><label>Budget Class (₹/sqft)</label><input type="number" id="rate-construction-budget" value="${RATES.construction.budget}"></div>
+      </div>
+    </div>
+
+    <div class="dev-section">
+      <h3>Manpower Rates</h3>
+      <div class="two-col">
+        <div class="field"><label>Combined Site Rate (₹/sqft)</label><input type="number" id="rate-manpower-persqft" value="${RATES.manpower.ratePerSqft}"></div>
+        <div class="field"><label>Mason (₹/day, reference)</label><input type="number" id="rate-manpower-mason" value="${RATES.manpower.masonDay}"></div>
+        <div class="field"><label>Labour / Helper (₹/day, reference)</label><input type="number" id="rate-manpower-labour" value="${RATES.manpower.labourDay}"></div>
+      </div>
+    </div>
+
+    <div class="dev-section">
+      <h3>Consultation Charges</h3>
+      <div class="two-col">
+        <div class="field"><label>Phone Call (₹)</label><input type="number" id="rate-consult-call" value="${RATES.consultation.call}"></div>
+        <div class="field"><label>Video Call (₹)</label><input type="number" id="rate-consult-video" value="${RATES.consultation.video}"></div>
+        <div class="field"><label>Site Visit (₹)</label><input type="number" id="rate-consult-site" value="${RATES.consultation.siteVisit}"></div>
+      </div>
+    </div>
+
+    <div class="dev-section">
+      <h3>Consumption Norms</h3>
+      <div class="sub">These drive the calculator's math — how much material the average sqft actually needs.</div>
+      <div class="two-col">
+        <div class="field"><label>Steel (kg / sqft)</label><input type="number" step="0.1" id="cons-steel" value="${RATES.consumption.steelKgPerSqft}"></div>
+        <div class="field"><label>Bricks (units / sqft)</label><input type="number" step="0.1" id="cons-bricks" value="${RATES.consumption.bricksPerSqft}"></div>
+        <div class="field"><label>Sand (cft / sqft)</label><input type="number" step="0.1" id="cons-sand" value="${RATES.consumption.sandCftPerSqft}"></div>
+        <div class="field"><label>Stone (cft / sqft)</label><input type="number" step="0.1" id="cons-stone" value="${RATES.consumption.stoneCftPerSqft}"></div>
+        <div class="field"><label>Marble coverage factor</label><input type="number" step="0.05" id="cons-marble" value="${RATES.consumption.marbleFactor}"></div>
+      </div>
+    </div>
+
+    <div class="save-bar">
+      <span class="msg">Changes go live for every buyer as soon as you save.</span>
+      <button onclick="saveAllRates()">Save All Changes</button>
+    </div>
+  `;
+}
+
+function catList(cat){
+  if(cat==='steel-premium') return RATES.steel.premium;
+  if(cat==='steel-secondary') return RATES.steel.secondary;
+  if(cat==='bricks-fireFurnace') return RATES.bricks.fireFurnace;
+  if(cat==='bricks-electricFurnace') return RATES.bricks.electricFurnace;
+  return RATES[cat];
+}
+function addItem(cat){
+  const nameEl = document.getElementById(`new-${cat}-name`);
+  const rateEl = document.getElementById(`new-${cat}-rate`);
+  const name = nameEl.value.trim();
+  const rate = parseFloat(rateEl.value);
+  if(!name || isNaN(rate)){ toast('Enter a name and rate first.'); return; }
+  const unitMap = {'bricks-fireFurnace':'unit','bricks-electricFurnace':'unit','steel-premium':'kg','steel-secondary':'kg', sand:'cft', stone:'cft', marble:'sqft'};
+  const list = catList(cat);
+  list.push({id: cat+'-'+Date.now(), name, rate, unit:unitMap[cat], benefits:[]});
+  saveAllRates(true);
+}
+function deleteItem(cat, idx){
+  if(!confirm('Remove this item? Buyers will no longer see it.')) return;
+  catList(cat).splice(idx,1);
+  saveAllRates(true);
+}
+
+async function saveAllRates(skipInputRead){
+  if(!skipInputRead){
+    document.querySelectorAll('.rate-table input[type=number]').forEach(inp=>{
+      const cat = inp.dataset.cat, idx = inp.dataset.idx;
+      if(cat!==undefined){
+        const list = catList(cat);
+        if(list[idx]) list[idx].rate = parseFloat(inp.value) || 0;
+      }
+    });
+    const g = id => document.getElementById(id);
+    RATES.architecture.premium.rate = parseFloat(g('rate-arch-premium').value) || RATES.architecture.premium.rate;
+    RATES.architecture.budget.rate = parseFloat(g('rate-arch-budget').value) || RATES.architecture.budget.rate;
+    RATES.construction.premium = parseFloat(g('rate-construction-premium').value) || RATES.construction.premium;
+    RATES.construction.budget = parseFloat(g('rate-construction-budget').value) || RATES.construction.budget;
+    RATES.manpower.ratePerSqft = parseFloat(g('rate-manpower-persqft').value) || RATES.manpower.ratePerSqft;
+    RATES.manpower.masonDay = parseFloat(g('rate-manpower-mason').value) || RATES.manpower.masonDay;
+    RATES.manpower.labourDay = parseFloat(g('rate-manpower-labour').value) || RATES.manpower.labourDay;
+    RATES.consultation.call = parseFloat(g('rate-consult-call').value) || 0;
+    RATES.consultation.video = parseFloat(g('rate-consult-video').value) || 0;
+    RATES.consultation.siteVisit = parseFloat(g('rate-consult-site').value) || 0;
+    RATES.consumption.steelKgPerSqft = parseFloat(g('cons-steel').value) || RATES.consumption.steelKgPerSqft;
+    RATES.consumption.bricksPerSqft = parseFloat(g('cons-bricks').value) || RATES.consumption.bricksPerSqft;
+    RATES.consumption.sandCftPerSqft = parseFloat(g('cons-sand').value) || RATES.consumption.sandCftPerSqft;
+    RATES.consumption.stoneCftPerSqft = parseFloat(g('cons-stone').value) || RATES.consumption.stoneCftPerSqft;
+    RATES.consumption.marbleFactor = parseFloat(g('cons-marble').value) || RATES.consumption.marbleFactor;
+  }
+  const ok = await safeSet('pb-rates', RATES);
+  if(ok) toast('✓ Rates updated — live for all buyers now.');
+  renderDev();
+}
+
+/* ---- projects admin ---- */
+function devProjectsPanel(){
+  const rows = (PROJECTS||[]).map((p,idx)=>`
+    <div class="proj-admin-card">
+      <div class="info">
+        <h4>${p.title}</h4>
+        <div class="meta">${p.location} · ${p.area} sqft · ${p.cls==='premium'?'Premium':'Budget'}</div>
+      </div>
+      <button class="del-btn" style="font-size:20px;" onclick="deleteProject(${idx})" title="Remove">✕</button>
+    </div>`).join('');
+  return `
+    <div class="dev-section">
+      <h3>Showcase Projects</h3>
+      <div class="sub">These appear on the buyer's Architect &amp; Civil Engineer step as completed work.</div>
+      ${rows || '<p class="sub">No projects yet — add your first below.</p>'}
+      <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border);">
+        <div class="two-col">
+          <div class="field"><label>Project Title</label><input type="text" id="np-title" placeholder="e.g. Sundar Residency"></div>
+          <div class="field"><label>Location</label><input type="text" id="np-location" placeholder="e.g. Panipat, Haryana"></div>
+          <div class="field"><label>Area (sqft)</label><input type="number" id="np-area" placeholder="e.g. 2000"></div>
+          <div class="field"><label>Class</label>
+            <select id="np-class" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+              <option value="premium">Premium</option>
+              <option value="budget">Budget</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" style="margin-top:4px;">
+          <label>Short Tagline</label>
+          <input type="text" id="np-tagline" placeholder="One line describing the build" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+        </div>
+        <button class="btn primary" style="margin-top:14px;" onclick="addProject()">+ Add Project</button>
+      </div>
+    </div>
+  `;
+}
+async function addProject(){
+  const title = document.getElementById('np-title').value.trim();
+  const location = document.getElementById('np-location').value.trim();
+  const area = parseFloat(document.getElementById('np-area').value);
+  const cls = document.getElementById('np-class').value;
+  const tagline = document.getElementById('np-tagline').value.trim();
+  if(!title || !location || !area){ toast('Fill in title, location and area.'); return; }
+  PROJECTS.push({id:'p'+Date.now(), title, location, area, cls, tagline: tagline || ''});
+  const ok = await safeSet('pb-projects', PROJECTS);
+  if(ok) toast('✓ Project added — visible to buyers now.');
+  renderDev();
+}
+async function deleteProject(idx){
+  if(!confirm('Remove this project from the buyer gallery?')) return;
+  PROJECTS.splice(idx,1);
+  const ok = await safeSet('pb-projects', PROJECTS);
+  if(ok) toast('✓ Project removed.');
+  renderDev();
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+(async function init(){
+  await loadState();
+  renderBuyer();
+})();
+
+
+/* ---- calculator modal open/close ---- */
+function openCalculator(){
+  document.getElementById('calcModal').classList.add('open');
+  document.body.classList.add('calc-lock');
+}
+function closeCalculator(){
+  document.getElementById('calcModal').classList.remove('open');
+  document.body.classList.remove('calc-lock');
+}
+['calcNavBtn','calcNavBtnMobile','calcHeroBtn'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('click', (e)=>{ e.preventDefault(); openCalculator(); if(id==='calcNavBtnMobile'){ document.getElementById('mobileMenu').classList.remove('open'); } });
+});
+document.getElementById('calcCloseBtn').addEventListener('click', closeCalculator);
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeCalculator(); });
+
+</script>
+</body>
+</html>
