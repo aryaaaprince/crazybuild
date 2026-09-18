@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prince Builders — From Blueprint To Built</title>
+<title>Crazy Build — Crazy Rates. Solid Homes.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -204,9 +204,40 @@
     font-weight:900; font-size:24px; letter-spacing:0.02em;
     color:var(--white);
     text-transform:uppercase;
-    display:flex; align-items:center; gap:10px;
+    display:flex; align-items:center; gap:11px;
   }
   .logo .dot{ color:var(--brick); }
+  .logo-mark{ width:38px; height:38px; flex:none; }
+  .logo-mark svg{ width:100%; height:100%; overflow:visible; }
+  .logo-text{ display:flex; flex-direction:column; line-height:1; }
+  .logo-name{ line-height:0.9; }
+  .logo-tag{
+    font-family:'IBM Plex Mono', monospace; font-size:8.5px; font-weight:500;
+    letter-spacing:0.16em; text-transform:uppercase; color:var(--gold-soft);
+    margin-top:5px; white-space:nowrap;
+  }
+  @media (max-width:520px){
+    .logo{ font-size:20px; gap:9px; }
+    .logo-mark{ width:32px; height:32px; }
+    .logo-tag{ font-size:7.5px; letter-spacing:0.12em; }
+  }
+  /* animated build-up on the mark */
+  .lm-roof{ animation:lmDrop 4.5s ease-in-out infinite; transform-origin:24px 20px; }
+  .lm-brick{ animation:lmPulse 4.5s ease-in-out infinite; }
+  .lm-brick:nth-of-type(2){ animation-delay:.14s; }
+  .lm-brick:nth-of-type(3){ animation-delay:.28s; }
+  @keyframes lmDrop{
+    0%,68%,100%{ transform:translateY(0); }
+    76%{ transform:translateY(-3px); }
+    84%{ transform:translateY(0); }
+  }
+  @keyframes lmPulse{
+    0%,60%,100%{ opacity:1; }
+    70%{ opacity:0.45; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .lm-roof, .lm-brick{ animation:none; }
+  }
   nav ul{ display:flex; gap:32px; }
   @media (max-width:900px){ nav ul{ display:none; } }
   nav a{
@@ -478,6 +509,198 @@
   .sw-atella{ background:linear-gradient(135deg,#d8c9a3,#b39d6e); }
   .sw-tosham-s{ background:linear-gradient(135deg,#cbb98d,#a48a55); }
   .sw-dadri-s{ background:linear-gradient(135deg,#e0d3ac,#bfa877); }
+
+  /* ============ BUY / SELLER DRAWER ============ */
+  .mat-card{ cursor:pointer; }
+  .mat-card .buy-cue{
+    margin-top:14px; padding-top:12px; border-top:1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+  }
+  .mat-card .buy-cue .from{ font-family:'IBM Plex Mono'; font-size:11px; color:var(--ink-soft); }
+  .mat-card .buy-cue .from b{ color:var(--brick); font-size:14px; font-weight:600; }
+  .mat-card .buy-cue .cta{
+    font-family:'IBM Plex Mono'; font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--brick); white-space:nowrap;
+  }
+  .mat-card .seller-count{
+    font-family:'IBM Plex Mono'; font-size:10px; color:var(--ink-soft);
+    display:block; margin-top:6px;
+  }
+
+  .drawer-scrim{
+    position:fixed; inset:0; z-index:900; background:rgba(20,28,25,0.55);
+    backdrop-filter:blur(3px); opacity:0; pointer-events:none; transition:opacity .3s ease;
+  }
+  .drawer-scrim.open{ opacity:1; pointer-events:auto; }
+  .buy-drawer{
+    position:fixed; top:0; right:0; bottom:0; width:min(560px,100%); z-index:901;
+    background:var(--concrete); transform:translateX(100%); transition:transform .38s cubic-bezier(.2,.8,.25,1);
+    display:flex; flex-direction:column; box-shadow:-30px 0 70px -25px rgba(20,28,25,0.5);
+  }
+  .buy-drawer.open{ transform:translateX(0); }
+  .bd-head{
+    background:var(--charcoal); color:var(--white); padding:22px 26px 20px; position:relative; flex:none;
+  }
+  .bd-head::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:4px;
+    background:repeating-linear-gradient(45deg,var(--gold) 0 12px,var(--charcoal) 12px 24px);
+  }
+  .bd-close{
+    position:absolute; top:20px; right:22px; background:none; border:1px solid rgba(255,255,255,0.28);
+    color:#fff; width:34px; height:34px; border-radius:50%; cursor:pointer; font-size:15px; line-height:1;
+  }
+  .bd-close:hover{ background:rgba(255,255,255,0.1); }
+  .bd-eyebrow{ font-family:'IBM Plex Mono'; font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--gold); }
+  .bd-head h3{ font-size:30px; margin-top:8px; color:#fff; padding-right:44px; }
+  .bd-grade{ font-family:'IBM Plex Mono'; font-size:11.5px; color:var(--concrete-2); margin-top:4px; }
+  .bd-stats{ display:flex; gap:22px; margin-top:16px; flex-wrap:wrap; }
+  .bd-stats .s .n{ font-family:'Big Shoulders Display'; font-size:24px; color:var(--gold); line-height:1; }
+  .bd-stats .s .l{ font-family:'IBM Plex Mono'; font-size:9.5px; letter-spacing:0.08em; text-transform:uppercase; color:#b5b0a0; margin-top:3px; }
+
+  .bd-body{ flex:1; overflow-y:auto; padding:22px 26px 30px; }
+  .bd-sort{ display:flex; gap:7px; margin-bottom:18px; flex-wrap:wrap; }
+  .bd-sort button{
+    font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:0.04em; text-transform:uppercase;
+    padding:7px 13px; border:1px solid var(--line); background:var(--white); color:var(--ink-soft);
+    border-radius:20px; cursor:pointer; transition:.18s;
+  }
+  .bd-sort button.on{ background:var(--ink); color:#fff; border-color:var(--ink); }
+
+  .bd-label{
+    font-family:'IBM Plex Mono'; font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--ink-soft); margin:20px 0 10px; display:flex; align-items:center; gap:8px;
+  }
+  .bd-label:first-of-type{ margin-top:0; }
+  .bd-label::after{ content:''; flex:1; height:1px; background:var(--line); }
+
+  .seller{
+    background:var(--white); border:1px solid var(--line); border-radius:11px;
+    padding:16px 18px; margin-bottom:11px; position:relative; transition:box-shadow .22s, border-color .22s;
+  }
+  .seller:hover{ border-color:var(--brick); box-shadow:0 16px 30px -22px rgba(44,36,24,0.5); }
+  .seller.sponsored{
+    border-color:var(--gold);
+    background:linear-gradient(180deg, rgba(201,143,58,0.09), transparent 42%), var(--white);
+  }
+  .seller-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+  .seller-name{ font-family:'Big Shoulders Display'; font-size:19px; text-transform:uppercase; line-height:1.05; }
+  .seller-meta{ font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--ink-soft); margin-top:4px; }
+  .seller-price{ text-align:right; white-space:nowrap; }
+  .seller-price .p{ font-family:'Big Shoulders Display'; font-size:26px; color:var(--brick); line-height:1; }
+  .seller-price .u{ font-family:'IBM Plex Mono'; font-size:10px; color:var(--ink-soft); }
+  .seller-badges{ display:flex; gap:6px; flex-wrap:wrap; margin-top:11px; }
+  .sb{
+    font-family:'IBM Plex Mono'; font-size:9px; letter-spacing:0.07em; text-transform:uppercase;
+    padding:4px 9px; border-radius:20px; font-weight:600;
+  }
+  .sb.gold{ background:var(--gold); color:#fff; }
+  .sb.best{ background:var(--brick); color:#fff; }
+  .sb.verified{ background:rgba(31,111,92,0.13); color:var(--brick); }
+  .sb.stock{ background:rgba(31,111,92,0.13); color:var(--brick); }
+  .sb.low{ background:rgba(201,143,58,0.18); color:#8a5a0b; }
+  .sb.plain{ border:1px solid var(--line); color:var(--ink-soft); }
+  .seller-foot{ display:flex; gap:9px; margin-top:14px; }
+  .seller-foot a, .seller-foot button{
+    flex:1; text-align:center; font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:0.05em;
+    text-transform:uppercase; padding:11px 10px; border-radius:7px; cursor:pointer; border:1px solid var(--line);
+    background:var(--white); color:var(--ink); transition:.18s;
+  }
+  .seller-foot .call{ background:var(--brick); border-color:var(--brick); color:#fff; }
+  .seller-foot .call:hover{ background:var(--brick-light); }
+  .seller-foot .quote:hover{ border-color:var(--ink); }
+  .bd-note{
+    font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--ink-soft); line-height:1.6;
+    background:var(--white); border:1px dashed var(--line); border-radius:9px; padding:14px 16px; margin-top:18px;
+  }
+  .bd-empty{ text-align:center; color:var(--ink-soft); font-size:13.5px; padding:34px 20px; }
+
+  /* ============ FEATURED STRIP ============ */
+  .featured-strip{ background:var(--white); }
+  .feat-rail{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  @media (max-width:960px){ .feat-rail{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:560px){ .feat-rail{ grid-template-columns:1fr; } }
+  .feat-card{
+    border:1px solid var(--gold); border-radius:12px; padding:20px 18px; cursor:pointer;
+    background:linear-gradient(180deg, rgba(201,143,58,0.1), transparent 50%), var(--white);
+    position:relative; transition:transform .22s, box-shadow .22s;
+  }
+  .feat-card:hover{ transform:translateY(-4px); box-shadow:0 26px 42px -24px rgba(44,36,24,0.45); }
+  .feat-tag{
+    position:absolute; top:-9px; left:16px; background:var(--gold); color:#fff;
+    font-family:'IBM Plex Mono'; font-size:8.5px; letter-spacing:0.09em; text-transform:uppercase;
+    padding:4px 10px; border-radius:20px; font-weight:600;
+  }
+  .feat-card h4{ font-family:'Big Shoulders Display'; font-size:21px; text-transform:uppercase; margin:8px 0 3px; }
+  .feat-card .fm{ font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--ink-soft); }
+  .feat-card .fp{ font-family:'Big Shoulders Display'; font-size:27px; color:var(--brick); margin-top:12px; line-height:1; }
+  .feat-card .fp span{ font-family:'IBM Plex Mono'; font-size:10px; color:var(--ink-soft); }
+  .feat-card .fs{ font-family:'IBM Plex Mono'; font-size:10px; color:var(--ink-soft); margin-top:9px; display:block; }
+
+  /* ============ DRILL-DOWN CATALOG BROWSER ============ */
+  .browse-section{ background:var(--concrete); }
+  .crumb{
+    display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-bottom:26px;
+    font-family:'IBM Plex Mono'; font-size:11.5px; letter-spacing:0.04em;
+    min-height:34px;
+  }
+  .crumb a{
+    color:var(--brick); cursor:pointer; text-transform:uppercase;
+    border-bottom:1px solid transparent; transition:border-color .18s;
+  }
+  .crumb a:hover{ border-bottom-color:var(--brick); }
+  .crumb .sep{ color:var(--ink-soft); opacity:0.55; }
+  .crumb .now{ color:var(--ink-soft); text-transform:uppercase; }
+  .crumb .back{
+    border:1px solid var(--line); border-radius:20px; padding:5px 13px; background:var(--white);
+    color:var(--ink); cursor:pointer; font-family:inherit; font-size:11px; text-transform:uppercase;
+    letter-spacing:0.05em; margin-right:4px;
+  }
+  .crumb .back:hover{ border-color:var(--ink); }
+
+  .browse-stage{ position:relative; }
+  .browse-step{ display:none; animation:stepIn .32s cubic-bezier(.2,.8,.3,1); }
+  .browse-step.on{ display:block; }
+  @keyframes stepIn{ from{ opacity:0; transform:translateY(14px);} to{ opacity:1; transform:translateY(0);} }
+  @media (prefers-reduced-motion: reduce){ .browse-step{ animation:none; } }
+
+  .browse-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  @media (max-width:960px){ .browse-grid{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:560px){ .browse-grid{ grid-template-columns:1fr; } }
+  .browse-grid.cols-2{ grid-template-columns:repeat(2,1fr); max-width:760px; }
+  @media (max-width:640px){ .browse-grid.cols-2{ grid-template-columns:1fr; } }
+  .browse-grid.cols-3{ grid-template-columns:repeat(3,1fr); }
+  @media (max-width:860px){ .browse-grid.cols-3{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:560px){ .browse-grid.cols-3{ grid-template-columns:1fr; } }
+
+  .bx{
+    background:var(--white); border:1px solid var(--line); border-radius:12px;
+    padding:24px 20px 20px; cursor:pointer; position:relative; overflow:hidden;
+    transition:transform .22s, box-shadow .22s, border-color .22s;
+  }
+  .bx:hover{ transform:translateY(-4px); border-color:var(--brick); box-shadow:0 26px 44px -24px rgba(44,36,24,0.45); }
+  .bx:focus-visible{ outline:2px solid var(--brick); outline-offset:3px; }
+  .bx-icon{ width:46px; height:46px; margin-bottom:16px; }
+  .bx-icon svg{ width:100%; height:100%; }
+  .bx-icon svg *{ stroke:var(--brick); fill:none; stroke-width:1.7; }
+  .bx h4{ font-family:'Big Shoulders Display'; font-size:23px; text-transform:uppercase; margin-bottom:5px; }
+  .bx .bx-sub{ font-size:12.5px; color:var(--ink-soft); line-height:1.45; }
+  .bx .bx-foot{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    margin-top:16px; padding-top:13px; border-top:1px solid var(--line);
+    font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--ink-soft);
+  }
+  .bx .bx-foot .arrow{ color:var(--brick); letter-spacing:0.06em; text-transform:uppercase; }
+  .bx .bx-from b{ color:var(--brick); font-size:14px; font-weight:600; }
+  .bx-swatch{ width:100%; height:52px; border-radius:7px; border:1px solid var(--line); margin-bottom:14px; }
+  .bx-chip{
+    position:absolute; top:14px; right:14px; background:var(--gold); color:#fff;
+    font-family:'IBM Plex Mono'; font-size:8.5px; letter-spacing:0.08em; text-transform:uppercase;
+    padding:4px 9px; border-radius:20px; font-weight:600;
+  }
+  .bx.tier-premium{ background:linear-gradient(180deg, rgba(201,143,58,0.1), transparent 46%), var(--white); border-color:var(--gold); }
+  .browse-head{ margin-bottom:24px; }
+  .browse-head h3{ font-size:clamp(26px,3.4vw,36px); }
+  .browse-head p{ color:var(--ink-soft); font-size:14.5px; margin-top:8px; max-width:560px; }
 
   /* ============ BUDGET TIERS ============ */
   .tier-grid{ display:grid; grid-template-columns:1fr 1fr; gap:2px; background:var(--ink); border:1px solid var(--ink); }
@@ -920,7 +1143,24 @@ font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--ink);}
 
 <header>
   <div class="nav-inner">
-    <div class="logo">PRINCE<span class="dot">.</span>BUILDERS</div>
+    <div class="logo">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 48 48">
+          <!-- roof / chevron -->
+          <path class="lm-roof" d="M24 5 L45 21 L38.5 21 L24 10 L9.5 21 L3 21 Z" fill="var(--gold)"/>
+          <!-- brick courses -->
+          <rect class="lm-brick" x="9"  y="25" width="13" height="8" rx="1.5" fill="var(--brick-light)"/>
+          <rect class="lm-brick" x="26" y="25" width="13" height="8" rx="1.5" fill="var(--brick)"/>
+          <rect class="lm-brick" x="9"  y="36" width="30" height="8" rx="1.5" fill="var(--brick)"/>
+          <!-- door notch -->
+          <rect x="20.5" y="36" width="7" height="8" rx="1" fill="var(--charcoal)"/>
+        </svg>
+      </span>
+      <span class="logo-text">
+        <span class="logo-name">CRAZY<span class="dot">.</span>BUILD</span>
+        <span class="logo-tag">Crazy Rates · Solid Homes</span>
+      </span>
+    </div>
     <nav>
       <ul>
         <li><a href="#pillars" onclick="setMode('full')">What We Do</a></li>
@@ -950,7 +1190,7 @@ font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--ink);}
   </ul>
 </div>
 
-<!-- ================= SCREENSAVER: how Prince Builders works ================= -->
+<!-- ================= SCREENSAVER: how Crazy Build works ================= -->
 <div class="ss-overlay" id="ssOverlay">
   <div class="blueprint-bg dark"></div>
   <div class="light-field" id="ssLightField">
@@ -963,7 +1203,7 @@ font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--ink);}
   </div>
 
   <div class="ss-copy">
-    <span class="tag-label mono">How Prince Builders works</span>
+    <span class="tag-label mono">How Crazy Build works</span>
     <h2 id="ssHeadline">Your Call Comes In</h2>
     <p id="ssSub">One number, and the file opens.</p>
   </div>
@@ -1013,7 +1253,7 @@ font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--ink);}
           <rect x="390" y="280" width="70" height="65" rx="8" fill="#233d32" stroke="var(--concrete-2)" stroke-width="3"/>
           <rect x="410" y="298" width="34" height="28" rx="3" fill="#0f2019" stroke="var(--gold-soft)" stroke-width="1.5"/>
           <rect x="200" y="200" width="150" height="16" rx="4" fill="var(--brick)"/>
-          <text x="275" y="213" text-anchor="middle" font-family="Big Shoulders Display" font-size="13" fill="#fff" letter-spacing="0.05em">PRINCE BUILDERS</text>
+          <text x="275" y="213" text-anchor="middle" font-family="Big Shoulders Display" font-size="13" fill="#fff" letter-spacing="0.05em">CRAZY BUILD</text>
           <circle class="headlight" cx="450" cy="322" r="6" fill="var(--gold-soft)"/>
           <circle cx="255" cy="352" r="20" fill="#101d18" stroke="var(--concrete-2)" stroke-width="3"/>
           <circle cx="255" cy="352" r="6" fill="var(--concrete-2)"/>
@@ -1156,7 +1396,7 @@ font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--ink);}
   </div>
   <div class="wrap hero-grid" style="position:relative;z-index:2;">
     <div>
-      <span class="tag-label mono">Ek Call · Ek Ghar — One Call, One Home</span>
+      <span class="tag-label mono">Be Crazy About Your Dreams — We're Just Crazy Enough To Build Them</span>
       <h1>Blueprint<br>To <em>Built</em>.</h1>
       <p class="lead">Steel, marble, bricks, sand — and the hands to build with them. One call, one visit, one dream home.</p>
       <div class="hero-actions">
@@ -1470,6 +1710,37 @@ font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--ink);}
         <text x="450" y="398" class="a-label a-label-house">YOUR DREAM HOME</text>
       </svg>
     </div>
+  </div>
+</section>
+
+<!-- ================= DRILL-DOWN CATALOG BROWSER ================= -->
+<section class="pad browse-section full-only" id="browse">
+  <div class="wrap">
+    <div class="section-head reveal" style="margin-bottom:34px;">
+      <span class="tag-label mono">Browse &amp; buy</span>
+      <h2>Pick Your Material.<br>Compare Every Seller.</h2>
+      <p>Choose a category, narrow to the exact grade you need, then see every verified seller stocking it — with their price, distance and stock.</p>
+    </div>
+
+    <nav class="crumb mono" id="browseCrumb" aria-label="Catalog breadcrumb"></nav>
+
+    <div class="browse-stage reveal" id="browseStage">
+      <div class="browse-step on" id="stepCat"></div>
+      <div class="browse-step" id="stepTier"></div>
+      <div class="browse-step" id="stepVariety"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FEATURED / SPONSORED MATERIALS ================= -->
+<section class="pad featured-strip full-only" id="featured" style="padding-bottom:0;">
+  <div class="wrap">
+    <div class="section-head reveal" style="margin-bottom:38px;">
+      <span class="tag-label mono">Featured this week</span>
+      <h2>Moving Fastest<br>Right Now.</h2>
+      <p>Top-selling material from our highest-rated sellers. Sponsored placements are marked — everything here is verified either way.</p>
+    </div>
+    <div class="feat-rail reveal" id="featRail"></div>
   </div>
 </section>
 
@@ -1826,19 +2097,42 @@ font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--ink);}
       </div>
     </div>
     <footer>
-      <span class="mono">© 2026 PRINCE BUILDERS — MATERIAL · BUILD · MANPOWER</span>
+      <span class="mono">© 2026 CRAZY BUILD — MATERIAL · BUILD · MANPOWER</span>
       <span class="mono">DWG-001 / FROM BLUEPRINT TO BUILT</span>
     </footer>
   </div>
 </section>
 
+<!-- ================= BUY / SELLER DRAWER ================= -->
+<div class="drawer-scrim" id="drawerScrim"></div>
+<aside class="buy-drawer" id="buyDrawer" aria-hidden="true" aria-label="Sellers stocking this material">
+  <div class="bd-head">
+    <button class="bd-close" id="bdClose" aria-label="Close">✕</button>
+    <span class="bd-eyebrow mono">Sellers near you</span>
+    <h3 id="bdTitle">Material</h3>
+    <div class="bd-grade mono" id="bdGrade"></div>
+    <div class="bd-stats" id="bdStats"></div>
+  </div>
+  <div class="bd-body">
+    <div class="bd-sort" id="bdSort">
+      <button class="on" data-sort="price">Lowest Price</button>
+      <button data-sort="distance">Nearest</button>
+      <button data-sort="rating">Top Rated</button>
+    </div>
+    <div id="bdList"></div>
+    <div class="bd-note mono">
+      Rates are what each seller last confirmed with our verification desk. Final price depends on quantity and delivery distance — confirm on the call before you order.
+    </div>
+  </div>
+</aside>
+
 <div class="calc-modal-overlay" id="calcModal">
 <div id="calcApp">
 <header class="topbar">
-  <div class="brand">PRINCE<span class="dot">.</span>BUILDERS <span class="mono" style="font-size:10px;color:#9a9486;text-transform:none;font-weight:400;margin-left:6px;">/ control panel</span></div>
+  <div class="brand">CRAZY<span class="dot">.</span>BUILD <span class="mono" style="font-size:10px;color:#9a9486;text-transform:none;font-weight:400;margin-left:6px;">/ control panel</span></div>
   <div class="mode-switch">
     <button id="btnBuyer" class="active">Buyer</button>
-    <button id="btnDev">Developer</button>
+    <button id="btnDev" style="display:none;">Developer</button>
   </div>
   <button class="calc-close" id="calcCloseBtn" aria-label="Close calculator">✕</button>
 </header>
@@ -1929,6 +2223,428 @@ font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--ink);}
       idleFloat();
     }, 3800);
   }
+
+  /* ============================================================
+     SELLER MARKETPLACE — which retailers stock which material.
+     Edit this list (or later load it from Supabase) as your team
+     onboards real sellers on the ground.
+     sponsored: paid placement — always shown first, marked as such.
+     ============================================================ */
+  const SELLERS = {
+    'Jindal Panther': [
+      {name:'Haryana Steel & Hardware', area:'Panipat', km:2.1, price:68, unit:'kg', rating:4.8, reviews:132, stock:'in', sponsored:true, delivery:'Same day', phone:'+910000000001'},
+      {name:'Kamdhenu Steel Point', area:'Sonipat', km:5.5, price:70, unit:'kg', rating:4.5, reviews:74, stock:'in', delivery:'Next day', phone:'+910000000008'},
+      {name:'Metro Steel Depot', area:'Panipat', km:4.9, price:69, unit:'kg', rating:4.3, reviews:58, stock:'low', delivery:'2 days', phone:'+910000000005'}
+    ],
+    'JSW Neosteel': [
+      {name:'Metro Steel Depot', area:'Panipat', km:4.9, price:66, unit:'kg', rating:4.3, reviews:58, stock:'in', delivery:'Next day', phone:'+910000000005'},
+      {name:'Haryana Steel & Hardware', area:'Panipat', km:2.1, price:67, unit:'kg', rating:4.8, reviews:132, stock:'in', sponsored:true, delivery:'Same day', phone:'+910000000001'}
+    ],
+    'Tata Tiscon': [
+      {name:'Haryana Steel & Hardware', area:'Panipat', km:2.1, price:70, unit:'kg', rating:4.8, reviews:132, stock:'in', sponsored:true, delivery:'Same day', phone:'+910000000001'},
+      {name:'Kamdhenu Steel Point', area:'Sonipat', km:5.5, price:71, unit:'kg', rating:4.5, reviews:74, stock:'in', delivery:'Next day', phone:'+910000000008'}
+    ],
+    'SAIL TMT': [
+      {name:'Metro Steel Depot', area:'Panipat', km:4.9, price:65, unit:'kg', rating:4.3, reviews:58, stock:'in', delivery:'Next day', phone:'+910000000005'}
+    ],
+    'Kamdhenu': [
+      {name:'Kamdhenu Steel Point', area:'Sonipat', km:5.5, price:58, unit:'kg', rating:4.5, reviews:74, stock:'in', sponsored:true, delivery:'Same day', phone:'+910000000008'},
+      {name:'Metro Steel Depot', area:'Panipat', km:4.9, price:59, unit:'kg', rating:4.3, reviews:58, stock:'in', delivery:'Next day', phone:'+910000000005'}
+    ],
+    'Metro Steel': [
+      {name:'Metro Steel Depot', area:'Panipat', km:4.9, price:55, unit:'kg', rating:4.3, reviews:58, stock:'in', sponsored:true, delivery:'Same day', phone:'+910000000005'}
+    ],
+    'Shyam Steel': [
+      {name:'Metro Steel Depot', area:'Panipat', km:4.9, price:54, unit:'kg', rating:4.3, reviews:58, stock:'in', delivery:'Next day', phone:'+910000000005'},
+      {name:'Kamdhenu Steel Point', area:'Sonipat', km:5.5, price:56, unit:'kg', rating:4.5, reviews:74, stock:'low', delivery:'2 days', phone:'+910000000008'}
+    ],
+    'Katni Marble': [
+      {name:'Sonipat Marble House', area:'Sonipat', km:6.4, price:63, unit:'sqft', rating:4.7, reviews:96, stock:'in', sponsored:true, delivery:'2 days', phone:'+910000000002'},
+      {name:'Wonder Tiles & Marble', area:'Karnal', km:8.2, price:66, unit:'sqft', rating:4.4, reviews:51, stock:'in', delivery:'3 days', phone:'+910000000007'}
+    ],
+    'Granite': [
+      {name:'Sonipat Marble House', area:'Sonipat', km:6.4, price:88, unit:'sqft', rating:4.7, reviews:96, stock:'in', sponsored:true, delivery:'2 days', phone:'+910000000002'},
+      {name:'Wonder Tiles & Marble', area:'Karnal', km:8.2, price:92, unit:'sqft', rating:4.4, reviews:51, stock:'in', delivery:'3 days', phone:'+910000000007'}
+    ],
+    'Wonder Marble': [
+      {name:'Wonder Tiles & Marble', area:'Karnal', km:8.2, price:75, unit:'sqft', rating:4.4, reviews:51, stock:'in', sponsored:true, delivery:'2 days', phone:'+910000000007'}
+    ],
+    'Italian Marble': [
+      {name:'Wonder Tiles & Marble', area:'Karnal', km:8.2, price:340, unit:'sqft', rating:4.4, reviews:51, stock:'low', delivery:'On order', phone:'+910000000007'},
+      {name:'Sonipat Marble House', area:'Sonipat', km:6.4, price:352, unit:'sqft', rating:4.7, reviews:96, stock:'in', sponsored:true, delivery:'4 days', phone:'+910000000002'}
+    ],
+    '40mm Grit': [
+      {name:'Tosham Stone & Sand Traders', area:'Tosham', km:41, price:38, unit:'cft', rating:4.2, reviews:37, stock:'in', delivery:'2 days', phone:'+910000000006'},
+      {name:'Karnal Crusher & Grit Co.', area:'Karnal', km:9.8, price:41, unit:'cft', rating:4.6, reviews:88, stock:'in', sponsored:true, delivery:'Same day', phone:'+910000000003'}
+    ],
+    '20mm Grit': [
+      {name:'Karnal Crusher & Grit Co.', area:'Karnal', km:9.8, price:40, unit:'cft', rating:4.6, reviews:88, stock:'in', sponsored:true, delivery:'Same day', phone:'+910000000003'},
+      {name:'Tosham Stone & Sand Traders', area:'Tosham', km:41, price:42, unit:'cft', rating:4.2, reviews:37, stock:'in', delivery:'2 days', phone:'+910000000006'}
+    ],
+    '60mm Grit': [
+      {name:'Narnaul Grit Suppliers', area:'Narnaul', km:55, price:36, unit:'cft', rating:4.1, reviews:24, stock:'in', delivery:'3 days', phone:'+910000000009'}
+    ],
+    'Atella Sand': [
+      {name:'Haryana Steel & Hardware', area:'Panipat', km:2.1, price:54, unit:'cft', rating:4.8, reviews:132, stock:'in', sponsored:true, delivery:'Same day', phone:'+910000000001'}
+    ],
+    'Tosham Sand': [
+      {name:'Tosham Stone & Sand Traders', area:'Tosham', km:41, price:50, unit:'cft', rating:4.2, reviews:37, stock:'in', delivery:'2 days', phone:'+910000000006'}
+    ],
+    'Dadri Sand': [
+      {name:'Karnal Crusher & Grit Co.', area:'Karnal', km:9.8, price:47, unit:'cft', rating:4.6, reviews:88, stock:'in', sponsored:true, delivery:'Same day', phone:'+910000000003'}
+    ]
+  };
+
+  /* Which materials get premium front-page placement */
+  const FEATURED = ['Jindal Panther', 'Katni Marble', '20mm Grit', 'Atella Sand'];
+
+  function cheapest(list){ return list.reduce((a,b)=> b.price < a.price ? b : a, list[0]); }
+  function sortSellers(list, mode){
+    const copy = list.slice();
+    copy.sort((a,b)=>{
+      if(a.sponsored && !b.sponsored) return -1;
+      if(!a.sponsored && b.sponsored) return 1;
+      if(mode==='distance') return a.km - b.km;
+      if(mode==='rating') return b.rating - a.rating;
+      return a.price - b.price;
+    });
+    return copy;
+  }
+
+  /* --- attach a price cue + click target to every material card --- */
+  document.querySelectorAll('#materials .mat-card').forEach(card=>{
+    const name = card.querySelector('h4')?.textContent.trim();
+    const list = SELLERS[name];
+    const cue = document.createElement('div');
+    cue.className = 'buy-cue';
+    if(list && list.length){
+      const low = cheapest(list);
+      cue.innerHTML = `<span class="from mono">from <b>₹${low.price}</b>/${low.unit}</span>
+                       <span class="cta mono">${list.length} seller${list.length>1?'s':''} →</span>`;
+      card.addEventListener('click', ()=> openDrawer(name, card));
+      card.setAttribute('role','button');
+      card.setAttribute('tabindex','0');
+      card.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openDrawer(name, card); } });
+    }else{
+      cue.innerHTML = `<span class="from mono">Sellers being onboarded</span>
+                       <span class="cta mono">Ask us →</span>`;
+    }
+    card.appendChild(cue);
+  });
+
+  /* --- drawer --- */
+  const drawer = document.getElementById('buyDrawer');
+  const scrim = document.getElementById('drawerScrim');
+  let activeMaterial = null;
+  let activeSort = 'price';
+
+  function openDrawer(name, card){
+    activeMaterial = name;
+    activeSort = 'price';
+    document.getElementById('bdTitle').textContent = name;
+    document.getElementById('bdGrade').textContent = card?.querySelector('.grade')?.textContent || '';
+    document.querySelectorAll('#bdSort button').forEach(b=> b.classList.toggle('on', b.dataset.sort==='price'));
+    renderStats(name);
+    renderSellers();
+    drawer.classList.add('open');
+    scrim.classList.add('open');
+    drawer.setAttribute('aria-hidden','false');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeDrawer(){
+    drawer.classList.remove('open');
+    scrim.classList.remove('open');
+    drawer.setAttribute('aria-hidden','true');
+    document.body.style.overflow = '';
+  }
+  document.getElementById('bdClose').addEventListener('click', closeDrawer);
+  scrim.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && drawer.classList.contains('open')) closeDrawer(); });
+
+  function renderStats(name){
+    const list = SELLERS[name] || [];
+    if(!list.length){ document.getElementById('bdStats').innerHTML=''; return; }
+    const low = cheapest(list);
+    const near = list.reduce((a,b)=> b.km < a.km ? b : a, list[0]);
+    document.getElementById('bdStats').innerHTML = `
+      <div class="s"><div class="n">₹${low.price}</div><div class="l mono">Best price /${low.unit}</div></div>
+      <div class="s"><div class="n">${list.length}</div><div class="l mono">Verified seller${list.length>1?'s':''}</div></div>
+      <div class="s"><div class="n">${near.km}<span style="font-size:14px;">km</span></div><div class="l mono">Nearest stock</div></div>`;
+  }
+
+  function renderSellers(){
+    const list = SELLERS[activeMaterial] || [];
+    const box = document.getElementById('bdList');
+    if(!list.length){
+      box.innerHTML = '<div class="bd-empty">No sellers listed for this material yet — our team is onboarding them now. Call us and we\'ll source it directly.</div>';
+      return;
+    }
+    const sorted = sortSellers(list, activeSort);
+    const lowest = cheapest(list).price;
+    const sponsored = sorted.filter(s=>s.sponsored);
+    const rest = sorted.filter(s=>!s.sponsored);
+
+    const card = s => `
+      <div class="seller ${s.sponsored?'sponsored':''}">
+        <div class="seller-top">
+          <div>
+            <div class="seller-name">${s.name}</div>
+            <div class="seller-meta">${s.area} · ${s.km} km · ★ ${s.rating} (${s.reviews})</div>
+          </div>
+          <div class="seller-price">
+            <div class="p">₹${s.price}</div>
+            <div class="u mono">per ${s.unit}</div>
+          </div>
+        </div>
+        <div class="seller-badges">
+          ${s.sponsored ? '<span class="sb gold">Sponsored</span>' : ''}
+          ${s.price===lowest ? '<span class="sb best">Best price</span>' : ''}
+          <span class="sb verified">✓ Verified</span>
+          <span class="sb ${s.stock==='low'?'low':'stock'}">${s.stock==='low'?'Low stock':'In stock'}</span>
+          <span class="sb plain">${s.delivery}</span>
+        </div>
+        <div class="seller-foot">
+          <a class="call mono" href="tel:${s.phone}">Call seller</a>
+          <button class="quote mono" onclick="requestQuote('${s.name.replace(/'/g,"\\'")}')">Request quote</button>
+        </div>
+      </div>`;
+
+    box.innerHTML =
+      (sponsored.length ? `<div class="bd-label mono">Sponsored</div>` + sponsored.map(card).join('') : '') +
+      (rest.length ? `<div class="bd-label mono">All verified sellers</div>` + rest.map(card).join('') : '');
+  }
+
+  document.querySelectorAll('#bdSort button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      activeSort = btn.dataset.sort;
+      document.querySelectorAll('#bdSort button').forEach(b=>b.classList.remove('on'));
+      btn.classList.add('on');
+      renderSellers();
+    });
+  });
+
+  window.requestQuote = function(sellerName){
+    const subject = encodeURIComponent(`Quote request — ${activeMaterial}`);
+    const body = encodeURIComponent(`Hi,\n\nI'd like a quote for ${activeMaterial} from ${sellerName}.\n\nQuantity needed:\nDelivery location:\nRequired by:\n\nThanks.`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
+
+  /* --- featured strip --- */
+  (function renderFeatured(){
+    const rail = document.getElementById('featRail');
+    if(!rail) return;
+    rail.innerHTML = FEATURED.map(name=>{
+      const list = SELLERS[name] || [];
+      if(!list.length) return '';
+      const low = cheapest(list);
+      return `
+        <div class="feat-card" onclick="openFeatured('${name.replace(/'/g,"\\'")}')">
+          <span class="feat-tag mono">${low.sponsored ? 'Sponsored' : 'Bestseller'}</span>
+          <h4>${name}</h4>
+          <div class="fm mono">${low.name} · ${low.area}</div>
+          <div class="fp">₹${low.price}<span> /${low.unit}</span></div>
+          <span class="fs mono">${list.length} seller${list.length>1?'s':''} · from ${low.km} km · ${low.delivery}</span>
+        </div>`;
+    }).join('');
+  })();
+
+  window.openFeatured = function(name){
+    const card = Array.from(document.querySelectorAll('#materials .mat-card'))
+      .find(c => c.querySelector('h4')?.textContent.trim() === name);
+    openDrawer(name, card);
+  };
+
+  /* ============================================================
+     CATALOG TREE — categories → tiers → varieties.
+     Variety names must match the keys in SELLERS above so the
+     seller drawer opens with the right list.
+     ============================================================ */
+  const ICONS = {
+    steel:'<svg viewBox="0 0 48 48"><rect x="7" y="16" width="34" height="7" rx="1.5"/><rect x="7" y="27" width="34" height="7" rx="1.5"/><path d="M13 16v-5M24 16v-5M35 16v-5"/></svg>',
+    bricks:'<svg viewBox="0 0 48 48"><rect x="6" y="13" width="16" height="9"/><rect x="26" y="13" width="16" height="9"/><rect x="16" y="26" width="16" height="9"/><rect x="6" y="26" width="6" height="9"/><rect x="36" y="26" width="6" height="9"/></svg>',
+    sand:'<svg viewBox="0 0 48 48"><path d="M6 34c5-9 9-13 18-13s13 4 18 13z"/><path d="M14 30c3-4 6-5 10-5s7 1 10 5"/><circle cx="18" cy="15" r="1.6"/><circle cx="28" cy="12" r="1.6"/><circle cx="34" cy="18" r="1.6"/></svg>',
+    stone:'<svg viewBox="0 0 48 48"><path d="M9 32l7-13 9 5 4-9 10 17z"/><path d="M16 19l9 5"/><path d="M25 24l4-9"/></svg>',
+    marble:'<svg viewBox="0 0 48 48"><rect x="7" y="12" width="34" height="24" rx="2"/><path d="M7 26c6-7 11 3 17-3s11 2 17-3"/></svg>'
+  };
+
+  const CATALOG = [
+    { id:'steel', name:'Steel', icon:ICONS.steel, blurb:'TMT reinforcement bars — the backbone of your structure.',
+      tiers:[
+        { name:'Primary Brands', note:'Mill-certified, highest tensile grade', premium:true,
+          varieties:['Jindal Panther','JSW Neosteel','Tata Tiscon','SAIL TMT'] },
+        { name:'Secondary Brands', note:'ISI-certified, budget-friendly grade',
+          varieties:['Kamdhenu','Metro Steel','Shyam Steel'] }
+      ]},
+    { id:'marble', name:'Marble &amp; Granite', icon:ICONS.marble, blurb:'Flooring and finishes — Indian quarried and imported.',
+      tiers:[
+        { name:'Premium Finishes', note:'Imported and high-gloss luxury slabs', premium:true,
+          varieties:['Italian Marble','Granite'] },
+        { name:'Indian Quarried', note:'Durable, cost-effective, widely available',
+          varieties:['Katni Marble','Wonder Marble'] }
+      ]},
+    { id:'stone', name:'Crusher Stone', icon:ICONS.stone, blurb:'Grit for foundation, RCC mix and flooring base.',
+      tiers:[
+        { name:'Foundation Grades', note:'Heavier grit for soling and deep base', premium:false,
+          varieties:['40mm Grit','60mm Grit'] },
+        { name:'RCC &amp; Plaster Grade', note:'Standard grit for concrete mix',
+          varieties:['20mm Grit'] }
+      ]},
+    { id:'sand', name:'Sand', icon:ICONS.sand, blurb:'Quarry-direct sand for plaster, RCC and brickwork.',
+      tiers:[
+        { name:'Fine Grade', note:'For plastering and finishing work',
+          varieties:['Atella Sand'] },
+        { name:'Coarse &amp; Medium', note:'For RCC strength and general masonry',
+          varieties:['Tosham Sand','Dadri Sand'] }
+      ]}
+  ];
+
+  const VARIETY_META = {
+    'Jindal Panther':{grade:'TMT · Fe 500D', sw:'sw-jindal'},
+    'JSW Neosteel':{grade:'TMT · Fe 550D', sw:'sw-jsw'},
+    'Tata Tiscon':{grade:'TMT · Fe 500', sw:'sw-tata'},
+    'SAIL TMT':{grade:'TMT · Fe 500', sw:'sw-sail'},
+    'Kamdhenu':{grade:'TMT · Fe 500', sw:'sw-kamdhenu'},
+    'Metro Steel':{grade:'TMT · Fe 500', sw:'sw-metro'},
+    'Shyam Steel':{grade:'TMT · Fe 500', sw:'sw-shyam'},
+    'Katni Marble':{grade:'Indian · Beige/Cream', sw:'sw-katni'},
+    'Granite':{grade:'Natural Stone', sw:'sw-granite'},
+    'Wonder Marble':{grade:'Indian · High Gloss', sw:'sw-wonder'},
+    'Italian Marble':{grade:'Imported · Luxury', sw:'sw-italian'},
+    '40mm Grit':{grade:'Foundation &amp; Base', sw:'sw-40mm'},
+    '20mm Grit':{grade:'RCC &amp; Plaster', sw:'sw-20mm'},
+    '60mm Grit':{grade:'Heavy Foundation', sw:'sw-60mm'},
+    'Atella Sand':{grade:'Fine Grade', sw:'sw-atella'},
+    'Tosham Sand':{grade:'Coarse Grade', sw:'sw-tosham-s'},
+    'Dadri Sand':{grade:'Medium Grade', sw:'sw-dadri-s'}
+  };
+
+  let bxCat = null, bxTier = null;
+
+  function priceFrom(varieties){
+    const prices = varieties.flatMap(v => (SELLERS[v]||[]).map(s=>s.price));
+    if(!prices.length) return null;
+    const list = varieties.flatMap(v => SELLERS[v]||[]);
+    return { low: Math.min(...prices), unit: list[0].unit, sellers: new Set(list.map(s=>s.name)).size };
+  }
+
+  function showStep(id){
+    ['stepCat','stepTier','stepVariety'].forEach(s=>{
+      document.getElementById(s).classList.toggle('on', s===id);
+    });
+  }
+
+  function renderCrumb(){
+    const c = document.getElementById('browseCrumb');
+    if(!bxCat){ c.innerHTML = '<span class="now">All materials</span>'; return; }
+    let html = `<button class="back mono" onclick="bxBack()">← Back</button>
+                <a onclick="bxHome()">All materials</a>`;
+    html += `<span class="sep">/</span>`;
+    if(!bxTier){ html += `<span class="now">${bxCat.name}</span>`; }
+    else{
+      html += `<a onclick="bxOpenCat('${bxCat.id}')">${bxCat.name}</a>
+               <span class="sep">/</span><span class="now">${bxTier.name}</span>`;
+    }
+    c.innerHTML = html;
+  }
+
+  function renderCats(){
+    document.getElementById('stepCat').innerHTML = `
+      <div class="browse-grid">
+        ${CATALOG.map(cat=>{
+          const all = cat.tiers.flatMap(t=>t.varieties);
+          const p = priceFrom(all);
+          return `<div class="bx" role="button" tabindex="0" onclick="bxOpenCat('${cat.id}')"
+                       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();bxOpenCat('${cat.id}')}">
+            <div class="bx-icon">${cat.icon}</div>
+            <h4>${cat.name}</h4>
+            <div class="bx-sub">${cat.blurb}</div>
+            <div class="bx-foot mono">
+              <span class="bx-from">${p ? `from <b>₹${p.low}</b>/${p.unit}` : 'Onboarding sellers'}</span>
+              <span class="arrow">${all.length} types →</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
+
+  window.bxOpenCat = function(id){
+    bxCat = CATALOG.find(c=>c.id===id);
+    bxTier = null;
+    document.getElementById('stepTier').innerHTML = `
+      <div class="browse-head">
+        <h3>${bxCat.name}</h3>
+        <p>Two grades to choose from — both verified and lab-checked, priced differently.</p>
+      </div>
+      <div class="browse-grid cols-2">
+        ${bxCat.tiers.map((t,i)=>{
+          const p = priceFrom(t.varieties);
+          return `<div class="bx ${t.premium?'tier-premium':''}" role="button" tabindex="0"
+                       onclick="bxOpenTier(${i})"
+                       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();bxOpenTier(${i})}">
+            ${t.premium?'<span class="bx-chip mono">Premium</span>':''}
+            <h4>${t.name}</h4>
+            <div class="bx-sub">${t.note}</div>
+            <div class="bx-foot mono">
+              <span class="bx-from">${p ? `from <b>₹${p.low}</b>/${p.unit}` : 'Onboarding sellers'}</span>
+              <span class="arrow">${t.varieties.length} options →</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    showStep('stepTier');
+    renderCrumb();
+    document.getElementById('browse').scrollIntoView({behavior:'smooth', block:'start'});
+  };
+
+  window.bxOpenTier = function(i){
+    bxTier = bxCat.tiers[i];
+    document.getElementById('stepVariety').innerHTML = `
+      <div class="browse-head">
+        <h3>${bxTier.name}</h3>
+        <p>Pick the exact grade — you'll then see every seller stocking it, sorted by price.</p>
+      </div>
+      <div class="browse-grid cols-3">
+        ${bxTier.varieties.map(v=>{
+          const list = SELLERS[v]||[];
+          const meta = VARIETY_META[v]||{};
+          const low = list.length ? Math.min(...list.map(s=>s.price)) : null;
+          const unit = list.length ? list[0].unit : '';
+          return `<div class="bx" role="button" tabindex="0" onclick="bxOpenVariety('${v.replace(/'/g,"\\'")}')"
+                       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();bxOpenVariety('${v.replace(/'/g,"\\'")}')}">
+            <div class="bx-swatch ${meta.sw||''}"></div>
+            <h4>${v}</h4>
+            <div class="bx-sub mono" style="font-size:11px;">${meta.grade||''}</div>
+            <div class="bx-foot mono">
+              <span class="bx-from">${low!==null ? `from <b>₹${low}</b>/${unit}` : 'Onboarding'}</span>
+              <span class="arrow">${list.length} seller${list.length===1?'':'s'} →</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    showStep('stepVariety');
+    renderCrumb();
+    document.getElementById('browse').scrollIntoView({behavior:'smooth', block:'start'});
+  };
+
+  window.bxOpenVariety = function(name){
+    const card = Array.from(document.querySelectorAll('#materials .mat-card'))
+      .find(c => c.querySelector('h4')?.textContent.trim() === name);
+    openDrawer(name, card);
+  };
+
+  window.bxBack = function(){
+    if(bxTier){ bxOpenCat(bxCat.id); }
+    else { bxHome(); }
+  };
+  window.bxHome = function(){
+    bxCat = null; bxTier = null;
+    showStep('stepCat');
+    renderCrumb();
+    document.getElementById('browse').scrollIntoView({behavior:'smooth', block:'start'});
+  };
+
+  renderCats();
+  renderCrumb();
 
   // Scroll reveal
   const observer = new IntersectionObserver((entries) => {
@@ -2096,9 +2812,19 @@ const DEFAULT_PROJECTS = [
 
 let RATES = null;
 let PROJECTS = null;
-const DEV_PIN = '1234';
+const DEV_PIN = '1003';
 let devAuthed = false;
 let currentMode = 'buyer';
+
+/* Developer tab is hidden from normal visitors — only appears if the page
+   is opened with ?admin=1 in the URL. This is NOT real security (the PIN
+   check below is client-side and visible in page source) — it only stops
+   casual visitors from noticing an admin panel exists. Real access control
+   requires proper login (Supabase Auth), which should replace this before
+   real money or sensitive data depends on it. */
+if(new URLSearchParams(window.location.search).get('admin') === '1'){
+  document.getElementById('btnDev').style.display = '';
+}
 
 /* ============================================================
    SUPABASE CONFIG — fill these in once your project is created
@@ -2541,7 +3267,7 @@ function stepSummary(){
     </div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px;">
       <button class="btn primary" onclick="getAIRecommendation()">✨ Get AI Recommendation</button>
-      <a class="btn ghost" style="text-decoration:none;display:inline-flex;align-items:center;" href="mailto:?subject=My Prince Builders Estimate&body=${encodeURIComponent(buildMailBody(c))}">Email This Estimate</a>
+      <a class="btn ghost" style="text-decoration:none;display:inline-flex;align-items:center;" href="mailto:?subject=My Crazy Build Estimate&body=${encodeURIComponent(buildMailBody(c))}">Email This Estimate</a>
     </div>
     <div id="aiResult"></div>
   `;
