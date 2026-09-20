@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Crazy Build — Retailer Panel</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --charcoal:#1f3d37; --concrete:#fbf4e8; --paper:#fffdf8;
+    --brick:#1f6f5c; --brick-light:#3f9484; --gold:#c98f3a; --gold-soft:#e0b876;
+    --coral:#e8734a; --sky:#3f8ecf; --ink:#2c2418; --ink-soft:#71624a;
+    --line:#ecdfc4; --red:#a8583d; --success:#4a8459;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;font-family:'Helvetica Neue',Arial,sans-serif;color:var(--ink);
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+    position:relative; overflow-x:hidden; min-height:100vh;
+    background:linear-gradient(180deg,#fef6e4 0%,#fbeed2 40%,#f6e3c2 100%);
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; animation-iteration-count:1 !important;}
+  }
+
+  /* ============ ANIMATED SHIPPING BACKGROUND ============ */
+  .scene{
+    position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none;
+  }
+  .scene svg{ width:100%; height:100%; }
+  .sc-sun{ animation:sunGlow 6s ease-in-out infinite; }
+  @keyframes sunGlow{
+    0%,100%{ opacity:0.75; } 50%{ opacity:1; }
+  }
+  .sc-cloud{ animation:cloudDrift 26s linear infinite; }
+  .sc-cloud.c2{ animation-duration:34s; animation-delay:-9s; }
+  .sc-cloud.c3{ animation-duration:20s; animation-delay:-4s; }
+  @keyframes cloudDrift{
+    0%{ transform:translateX(-140px); } 100%{ transform:translateX(1040px); }
+  }
+  .sc-truck{
+    animation:truckDrive 15s infinite;
+    animation-timing-function: cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes truckDrive{
+    0%      { transform:translateX(-360px); }
+    12%     { transform:translateX(40px); }
+    58%     { transform:translateX(40px); }
+    76%     { transform:translateX(820px); }
+    100%    { transform:translateX(820px); }
+  }
+  .sc-wheel{ animation:wheelSpin 15s infinite linear; transform-origin:center; }
+  @keyframes wheelSpin{
+    0%,12%{ transform:rotate(0deg); }
+    58%{ transform:rotate(140deg); }
+    76%,100%{ transform:rotate(900deg); }
+  }
+  .sc-crate{ opacity:0; animation:cratePop 15s infinite; }
+  .sc-crate.k1{ animation-delay:0s; }
+  .sc-crate.k2{ animation-delay:.35s; }
+  .sc-crate.k3{ animation-delay:.7s; }
+  .sc-crate.k4{ animation-delay:1.05s; }
+  @keyframes cratePop{
+    0%,18%{ opacity:0; transform:translateY(-18px) scale(0.6); }
+    26%,63%{ opacity:1; transform:translateY(0) scale(1); }
+    74%,100%{ opacity:0; transform:translateY(4px) scale(0.85); }
+  }
+  .sc-conveyor{ animation:beltMove 1.1s linear infinite; }
+  @keyframes beltMove{ 0%{ stroke-dashoffset:0; } 100%{ stroke-dashoffset:-24px; } }
+  .sc-dust{ animation:dustPuff 1.4s ease-out infinite; }
+  .sc-dust.d2{ animation-delay:.5s; }
+  @keyframes dustPuff{
+    0%{ opacity:0.45; transform:scale(0.7) translateX(0); }
+    100%{ opacity:0; transform:scale(1.7) translateX(-30px); }
+  }
+  .sc-crane{ animation:craneSway 4s ease-in-out infinite; transform-origin:120px 60px; }
+  @keyframes craneSway{ 0%,100%{ transform:rotate(-2deg); } 50%{ transform:rotate(2deg); } }
+
+  /* ============ FOREGROUND CONTENT ============ */
+  .wrap{ position:relative; z-index:1; max-width:480px;margin:0 auto;padding:0 0 60px; }
+  header{
+    background:linear-gradient(120deg, rgba(31,61,55,0.92), rgba(31,111,92,0.88));
+    color:#fff;padding:28px 20px 24px;position:relative;overflow:hidden;
+    backdrop-filter:blur(2px);
+  }
+  header::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:repeating-linear-gradient(45deg,var(--gold) 0 12px,var(--coral) 12px 24px);}
+  .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-soft);font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:7px;}
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:#6fe0a8;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  h1{font-size:24px;margin:0;font-weight:800;}
+  .sub{font-size:12.5px;color:#dcd6c8;margin-top:6px;line-height:1.5;}
+
+  .card{
+    background:rgba(255,253,248,0.88);
+    backdrop-filter:blur(10px);
+    margin:20px 16px;border-radius:16px;
+    border:1px solid rgba(255,255,255,0.6);
+    box-shadow:0 24px 50px -26px rgba(44,36,24,0.35), 0 0 0 1px rgba(201,143,58,0.12);
+    padding:26px 22px;
+  }
+  .gate h2{font-size:21px;margin:0 0 6px;background:linear-gradient(90deg,var(--brick),var(--coral));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .gate p{color:var(--ink-soft);font-size:13px;margin-bottom:20px;line-height:1.5;}
+  label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);margin:14px 0 6px;}
+  label:first-child{margin-top:0;}
+  input[type=text],input[type=tel]{
+    width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:9px;font-size:16px;background:#fff;color:var(--ink);font-family:inherit;
+  }
+  input:focus{outline:2px solid var(--brick);outline-offset:1px;border-color:var(--brick);}
+  .btn{
+    width:100%;margin-top:20px;padding:14px;border:none;border-radius:9px;font-size:15px;font-weight:700;cursor:pointer;color:#fff;
+    background:linear-gradient(120deg,var(--brick),var(--brick-light));
+    box-shadow:0 10px 22px -10px rgba(31,111,92,0.6);
+    transition:transform .15s;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn:disabled{opacity:.5;}
+  .err{color:var(--red);font-size:13px;margin-top:10px;display:none;text-align:center;}
+  .err.show{display:block;}
+
+  #app{display:none;}
+  .shop-name{font-size:22px;font-weight:800;}
+  .shop-meta{font-size:12.5px;color:var(--ink-soft);margin-top:4px;}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+  .tag{
+    font-size:11px;padding:4px 10px;border-radius:12px;font-weight:700;color:#fff;
+    background:linear-gradient(120deg,var(--sky),var(--brick-light));
+  }
+  .field{margin-top:18px;}
+  textarea{
+    width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:9px;font-size:15px;background:#fff;color:var(--ink);font-family:inherit;
+  }
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:8px;line-height:1.5;}
+  .toast{
+    position:fixed;bottom:24px;left:16px;right:16px;background:var(--charcoal);color:#fff;padding:14px 18px;border-radius:10px;
+    font-size:13.5px;text-align:center;transform:translateY(140%);opacity:0;transition:.3s;border-left:3px solid var(--success);z-index:50;
+  }
+  .toast.show{transform:translateY(0);opacity:1;}
+  .logout{display:block;text-align:center;margin-top:22px;font-size:12.5px;color:var(--ink-soft);cursor:pointer;text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<div class="scene" aria-hidden="true">
+  <svg viewBox="0 0 900 300" preserveAspectRatio="xMidYMax slice">
+    <defs>
+      <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#ffe8c2"/>
+        <stop offset="45%" stop-color="#ffd7ad"/>
+        <stop offset="100%" stop-color="#f6c79a"/>
+      </linearGradient>
+    </defs>
+    <rect x="0" y="0" width="900" height="300" fill="url(#skyGrad)" opacity="0.55"/>
+    <circle class="sc-sun" cx="760" cy="55" r="34" fill="#ffcf6b"/>
+    <g class="sc-cloud c1" opacity="0.55"><ellipse cx="120" cy="45" rx="34" ry="13" fill="#fff"/><ellipse cx="148" cy="40" rx="24" ry="11" fill="#fff"/></g>
+    <g class="sc-cloud c2" opacity="0.45"><ellipse cx="400" cy="30" rx="28" ry="11" fill="#fff"/><ellipse cx="422" cy="26" rx="18" ry="9" fill="#fff"/></g>
+    <g class="sc-cloud c3" opacity="0.5"><ellipse cx="650" cy="55" rx="30" ry="12" fill="#fff"/></g>
+
+    <!-- ground -->
+    <rect x="0" y="230" width="900" height="70" fill="#e7c9a0" opacity="0.5"/>
+    <line x1="0" y1="230" x2="900" y2="230" stroke="#b9855a" stroke-width="2" opacity="0.4"/>
+
+    <!-- loading dock / warehouse -->
+    <g opacity="0.85">
+      <rect x="10" y="150" width="130" height="80" fill="#2f5a4d" opacity="0.85"/>
+      <rect x="20" y="165" width="30" height="65" fill="#1f3d37"/>
+      <rect x="58" y="165" width="30" height="65" fill="#1f3d37"/>
+      <polygon points="0,150 75,110 150,150" fill="#1f3d37"/>
+      <!-- crane -->
+      <g class="sc-crane">
+        <line x1="120" y1="150" x2="120" y2="60" stroke="#8a6a3f" stroke-width="4"/>
+        <line x1="120" y1="70" x2="220" y2="70" stroke="#8a6a3f" stroke-width="4"/>
+        <line x1="205" y1="70" x2="205" y2="120" stroke="#8a6a3f" stroke-width="2.5"/>
+      </g>
+      <!-- conveyor belt -->
+      <line class="sc-conveyor" x1="95" y1="205" x2="205" y2="205" stroke="#5c4a30" stroke-width="6" stroke-dasharray="10 6"/>
+    </g>
+
+    <!-- crates dropping onto conveyor / truck -->
+    <rect class="sc-crate k1" x="180" y="188" width="20" height="16" rx="2" fill="#c98f3a"/>
+    <rect class="sc-crate k2" x="198" y="188" width="20" height="16" rx="2" fill="#3f9484"/>
+    <rect class="sc-crate k3" x="216" y="188" width="20" height="16" rx="2" fill="#e8734a"/>
+    <rect class="sc-crate k4" x="234" y="188" width="20" height="16" rx="2" fill="#3f8ecf"/>
+
+    <!-- dust behind truck -->
+    <ellipse class="sc-dust d1" cx="60" cy="222" rx="16" ry="5" fill="rgba(139,106,63,0.4)"/>
+    <ellipse class="sc-dust d2" cx="80" cy="222" rx="12" ry="4" fill="rgba(139,106,63,0.3)"/>
+
+    <!-- truck -->
+    <g class="sc-truck">
+      <rect x="0" y="150" width="120" height="60" rx="6" fill="#1f6f5c"/>
+      <rect x="8" y="158" width="100" height="20" fill="#3f9484" opacity="0.7"/>
+      <rect x="120" y="172" width="46" height="38" rx="5" fill="#2c2418"/>
+      <rect x="130" y="180" width="22" height="18" rx="2" fill="#ffd7ad" opacity="0.85"/>
+      <circle class="sc-wheel" cx="35" cy="212" r="14" fill="#1c1b19"/>
+      <circle cx="35" cy="212" r="5" fill="#8a8378"/>
+      <circle class="sc-wheel" cx="140" cy="212" r="14" fill="#1c1b19"/>
+      <circle cx="140" cy="212" r="5" fill="#8a8378"/>
+    </g>
+  </svg>
+</div>
+
+<header>
+  <div class="eyebrow"><span class="dot"></span>Crazy Build</div>
+  <h1>Retailer Panel</h1>
+  <div class="sub">Keep your rate up to date so customers always see your real price.</div>
+</header>
+
+<div class="wrap">
+  <div class="card" id="gateCard">
+    <h2>Log in</h2>
+    <p>Use the phone number and access code your Crazy Build contact gave you when they added your shop.</p>
+    <label>Your phone number</label>
+    <input type="tel" id="loginPhone" placeholder="10-digit number">
+    <label>Access code</label>
+    <input type="text" id="loginCode" maxlength="4" inputmode="numeric" placeholder="4-digit code">
+    <button class="btn" id="loginBtn">Log in</button>
+    <div class="err" id="loginErr">Phone number or access code doesn't match our records.</div>
+  </div>
+
+  <div id="app">
+    <div class="card">
+      <div class="shop-name" id="shName"></div>
+      <div class="shop-meta" id="shMeta"></div>
+      <div class="tags" id="shTags"></div>
+
+      <div class="field">
+        <label>Your current rate</label>
+        <textarea id="rateInput" rows="2" placeholder="e.g. Cement ₹380/bag, Steel ₹58/kg"></textarea>
+        <div class="hint">This is exactly what customers see on the site. Update it whenever your price changes.</div>
+      </div>
+      <button class="btn" id="saveBtn">Save my rate</button>
+      <span class="logout" id="logoutBtn">Log out</span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://mppdihrrqllhnqubrgyu.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wcGRpaHJycWxsaG5xdWJyZ3l1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4NDI4NzUsImV4cCI6MjEwNTQxODg3NX0.4-1RPVM2keh_Yl2Sal-EJL_iFMi6xwSzriXu5eNilrA';
+const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentRetailer = null;
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window.__t);
+  window.__t = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function normPhone(p){ return (p||'').replace(/\D/g,'').slice(-10); }
+
+async function findRetailer(phone, code){
+  const { data, error } = await client.from('kv_store').select('key,value').like('key','retailer:%');
+  if(error) throw error;
+  const match = (data||[]).find(r => normPhone(r.value.phone)===phone && String(r.value.accessCode)===code);
+  return match ? match.value : null;
+}
+
+document.getElementById('loginBtn').onclick = async ()=>{
+  const phone = normPhone(document.getElementById('loginPhone').value);
+  const code = document.getElementById('loginCode').value.trim();
+  const errBox = document.getElementById('loginErr');
+  errBox.classList.remove('show');
+  if(phone.length!==10 || code.length!==4){
+    errBox.textContent = 'Enter your 10-digit phone number and 4-digit code.';
+    errBox.classList.add('show');
+    return;
+  }
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Checking…';
+  try{
+    const r = await findRetailer(phone, code);
+    if(!r){
+      errBox.textContent = "Phone number or access code doesn't match our records. Contact your Crazy Build representative if you're not sure.";
+      errBox.classList.add('show');
+    } else {
+      currentRetailer = r;
+      showApp();
+    }
+  }catch(e){
+    errBox.textContent = 'Could not check right now — check your connection and try again.';
+    errBox.classList.add('show');
+  }
+  btn.disabled = false; btn.textContent = 'Log in';
+};
+
+function showApp(){
+  document.getElementById('gateCard').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('shName').textContent = currentRetailer.name;
+  document.getElementById('shMeta').textContent = currentRetailer.city + (currentRetailer.area ? ' · '+currentRetailer.area : '');
+  document.getElementById('shTags').innerHTML = (currentRetailer.materials||[]).map(m=>`<span class="tag">${escapeHtml(m)}</span>`).join('');
+  document.getElementById('rateInput').value = currentRetailer.rate || '';
+}
+
+document.getElementById('saveBtn').onclick = async ()=>{
+  const rate = document.getElementById('rateInput').value.trim();
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try{
+    currentRetailer.rate = rate;
+    const { error } = await client.from('kv_store').upsert({
+      key: 'retailer:'+currentRetailer.id,
+      value: currentRetailer,
+      updated_at: new Date().toISOString()
+    });
+    if(error) throw error;
+    toast('✓ Rate updated — customers will see this right away.');
+  }catch(e){
+    toast('⚠ Could not save — check your connection and try again.');
+  }
+  btn.disabled = false; btn.textContent = 'Save my rate';
+};
+
+document.getElementById('logoutBtn').onclick = ()=>{
+  currentRetailer = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('gateCard').style.display = 'block';
+  document.getElementById('loginPhone').value = '';
+  document.getElementById('loginCode').value = '';
+};
+</script>
+</body>
+</html>
