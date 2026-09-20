@@ -1,0 +1,20 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        { "type": "host", "value": "crazybuildfix.vercel.app" }
+      ],
+      "destination": "https://crazybuild.in/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        { "type": "host", "value": "crazybuild.vercel.app" }
+      ],
+      "destination": "https://crazybuild.in/:path*",
+      "permanent": true
+    }
+  ]
+}
